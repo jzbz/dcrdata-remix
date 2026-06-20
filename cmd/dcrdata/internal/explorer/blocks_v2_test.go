@@ -12,6 +12,16 @@ import (
 	"github.com/decred/dcrdata/v8/explorer/types"
 )
 
+// tdCommon returns a populated CommonPageData for the v2 render tests so the
+// shared chrome (sidebar/topbar live values) renders.
+func tdCommon() *CommonPageData {
+	return &CommonPageData{
+		NetName: "Mainnet", Version: "v8.0.0", ActiveNav: "blocks",
+		Tip:      &types.WebBasicBlock{Height: 905142},
+		DCRPrice: 18.42, PriceIndex: "USD",
+	}
+}
+
 // TestV2BlocksTemplateRenders loads the redesigned (npm-free) blocks template
 // through the real template machinery + funcMap and renders it with mock data,
 // verifying the whole pipeline (asset cache-busting, import map, controllers,
@@ -27,6 +37,7 @@ func TestV2BlocksTemplateRenders(t *testing.T) {
 
 	now := time.Now()
 	page := &blocksPage{
+		CommonPageData: tdCommon(),
 		Data: []*types.BlockBasic{
 			{Height: 905142, Valid: true, Transactions: 6, Voters: 5, FreshStake: 3,
 				Total: 12481.06, FormattedBytes: "23.4 KiB", Version: 11,
@@ -64,6 +75,8 @@ func TestV2BlocksTemplateRenders(t *testing.T) {
 		"of 905,143 blocks",   // rowcount via intComma/add helpers
 		"class=\"sidebar\"",   // sidebar shell rendered
 		"css/v2/fonts.css",    // self-hosted fonts linked
+		"Mainnet · Synced",    // live node status
+		"$18.42",              // live topbar price
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 blocks page missing %q", want)

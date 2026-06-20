@@ -32,6 +32,7 @@ func TestV2BlockTemplateRenders(t *testing.T) {
 		}
 	}
 	page := &blockPage{
+		CommonPageData: tdCommon(),
 		Data: &types.BlockInfo{
 			BlockBasic: &types.BlockBasic{
 				Height: 905142, Hash: "0000000000000000abcdef", Version: 11,

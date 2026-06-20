@@ -26,6 +26,7 @@ func TestV2TxTemplateRenders(t *testing.T) {
 	}
 
 	page := &txPage{
+		CommonPageData: tdCommon(),
 		Data: &types.TxInfo{
 			TxBasic: &types.TxBasic{
 				TxID: "9c0d1e2f3a4b5c6d7e8f90a1b2c3d4e5", Type: "Regular",

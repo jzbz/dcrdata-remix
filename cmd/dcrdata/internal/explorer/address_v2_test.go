@@ -27,6 +27,7 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 
 	h, _ := chainhash.NewHashFromStr("a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90")
 	page := &addressPage{
+		CommonPageData: tdCommon(),
 		Data: &dbtypes.AddressInfo{
 			Address:        "DsXyz1aBcDeFgHiJkLmNoPqRsTuVwXyZ12",
 			TxnCount:       42,

@@ -21,7 +21,7 @@ func TestV2ChartsTemplateRenders(t *testing.T) {
 		t.Fatalf("addTemplate(charts): %v", err)
 	}
 
-	out, err := tm.exec("charts", struct{ *CommonPageData }{})
+	out, err := tm.exec("charts", struct{ *CommonPageData }{tdCommon()})
 	if err != nil {
 		t.Fatalf("exec(charts): %v", err)
 	}

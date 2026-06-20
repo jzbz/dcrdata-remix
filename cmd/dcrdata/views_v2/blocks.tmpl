@@ -4,7 +4,7 @@
 {{template "v2-head" "Decred Blocks"}}
 <body data-controller="theme age">
 <div class="app">
-  {{template "v2-sidebar" "blocks"}}
+  {{template "v2-sidebar" .}}
   <div class="main">
     {{template "v2-topbar" .}}
     <main class="content">
@@ -21,6 +21,15 @@
         <span class="rowcount">{{intComma (add $offset 1)}} &ndash; {{intComma (add $offset .RowsCount)}} of {{intComma (add .BestBlock 1)}} blocks</span>
         {{end}}
       </div>
+
+      {{with .Tip}}
+      <div class="stat-grid" style="margin-bottom:var(--sp-5)">
+        <div class="card stat"><div class="k">Best Height</div><div class="v">{{intComma (int64 .Height)}}</div></div>
+        <div class="card stat"><div class="k">Difficulty</div><div class="v">{{threeSigFigs .Difficulty}}</div></div>
+        <div class="card stat"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Ticket Pool</div><div class="v">{{intComma (int64 .PoolSize)}}</div><div class="sub">tickets</div></div>
+      </div>
+      {{end}}
 
       <div class="panel">
         <div class="table-scroll">

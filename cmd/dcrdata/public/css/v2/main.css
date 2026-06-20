@@ -72,6 +72,28 @@
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
     --sp-5: 24px; --sp-6: 32px; --sp-8: 48px;
   }
+
+  /* Light theme (the topbar toggle switches data-theme on <html>). */
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #eef1f6;
+    --glow-turquoise: rgba(46, 214, 161, 0.10);
+    --glow-blue: rgba(41, 112, 255, 0.08);
+    --card: rgba(255, 255, 255, 0.72);
+    --card-hover: rgba(13, 22, 40, 0.04);
+    --border: rgba(13, 22, 40, 0.10);
+    --border-subtle: rgba(13, 22, 40, 0.07);
+    --text: #0e1422;
+    --text-2: #455065;
+    --muted: #5d6779;
+    --dim: #97a0b0;
+    --turquoise: #12b888;
+    --blue: #2f74e0;
+    --violet: #7a66f0;
+    --cyan: #1aa9c8;
+    --amber: #c9820f;
+    --down: #e0436a;
+  }
 }
 
 /* ----------------------------------------------------------------- base -- */
@@ -171,6 +193,8 @@
   .node-status .row { display: flex; justify-content: space-between; color: var(--dim); padding: 2px 0; }
   .node-status .row .v { color: var(--text-2); font-family: var(--font-mono); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--turquoise); position: relative; }
+  .dot.syncing { background: var(--amber); }
+  .dot.syncing::after { border-color: var(--amber); }
   .dot::after {
     content: ""; position: absolute; inset: -4px; border-radius: 50%;
     border: 1px solid var(--turquoise); opacity: 0; animation: ping 2s ease-out infinite;

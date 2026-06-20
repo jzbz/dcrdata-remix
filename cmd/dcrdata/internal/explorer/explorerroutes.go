@@ -68,6 +68,28 @@ type CommonPageData struct {
 	BaseURL       string // scheme + "://" + "host"
 	Path          string
 	RequestURI    string // path?query
+
+	// Live values surfaced in the v2 chrome (sidebar/topbar).
+	ActiveNav  string  // nav key for the current page (derived from Path)
+	Syncing    bool    // true while the DB is still indexing
+	DCRPrice   float64 // current DCR price, 0 if unavailable
+	PriceIndex string  // price currency code (e.g. USD)
+}
+
+// v2NavKey maps a request path to the sidebar nav key it should highlight.
+func v2NavKey(path string) string {
+	switch {
+	case strings.Contains(path, "/block"): // /v2/block, /v2/blocks
+		return "blocks"
+	case strings.Contains(path, "/tx"):
+		return "transactions"
+	case strings.Contains(path, "/address"):
+		return "address"
+	case strings.Contains(path, "/charts"):
+		return "charts"
+	default:
+		return "dashboard"
+	}
 }
 
 // FullURL constructs the page's complete URL.
@@ -2607,7 +2629,7 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 	}
 	baseURL := scheme + "://" + r.Host // assumes not opaque url
 
-	return &CommonPageData{
+	cpd := &CommonPageData{
 		Tip:           tip,
 		Version:       exp.Version,
 		ChainParams:   exp.ChainParams,
@@ -2622,7 +2644,14 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		BaseURL:    baseURL,
 		Path:       r.URL.Path,
 		RequestURI: r.URL.RequestURI(),
+		ActiveNav:  v2NavKey(r.URL.Path),
+		Syncing:    exp.AreDBsSyncing(),
 	}
+	if conv := exp.xcBot.Conversion(1.0); conv != nil {
+		cpd.DCRPrice = conv.Value
+		cpd.PriceIndex = conv.Index
+	}
+	return cpd
 }
 
 // A page number has the information necessary to create numbered pagination
