@@ -872,7 +872,23 @@ func (exp *explorerUI) Ticketpool(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-// TxPage is the page handler for the "/tx" path.
+// txPage is the data passed to the transaction template (legacy and v2).
+type txPage struct {
+	*CommonPageData
+	Data                 *types.TxInfo
+	Blocks               []*dbtypes.BlockStatus
+	BlockInds            []uint32
+	IsConfirmedMainchain bool
+	HighlightInOut       string
+	HighlightInOutID     int64
+	SwapsFound           string
+	Conversions          struct {
+		Total *exchanges.Conversion
+		Fees  *exchanges.Conversion
+	}
+}
+
+// TxPage is the page handler for the "/tx" path (and "/v2/tx" for the redesign).
 func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	// attempt to get tx hash string from URL path
@@ -1363,20 +1379,7 @@ func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		tx.Time = exp.mempoolTime(tx.TxID)
 	}
 
-	pageData := struct {
-		*CommonPageData
-		Data                 *types.TxInfo
-		Blocks               []*dbtypes.BlockStatus
-		BlockInds            []uint32
-		IsConfirmedMainchain bool
-		HighlightInOut       string
-		HighlightInOutID     int64
-		SwapsFound           string
-		Conversions          struct {
-			Total *exchanges.Conversion
-			Fees  *exchanges.Conversion
-		}
-	}{
+	pageData := &txPage{
 		CommonPageData:       exp.commonData(r),
 		Data:                 tx,
 		Blocks:               blocks,
@@ -1391,6 +1394,12 @@ func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	if exp.xcBot != nil {
 		pageData.Conversions.Total = exp.xcBot.Conversion(tx.Total)
 		pageData.Conversions.Fees = exp.xcBot.Conversion(tx.Fee.ToCoin())
+	}
+
+	// The redesigned (npm-free) page is served under /v2 by the same handler.
+	if strings.HasPrefix(r.URL.Path, "/v2/") {
+		exp.renderPage(w, exp.templatesV2, "tx", pageData)
+		return
 	}
 
 	str, err := exp.templates.exec("tx", pageData)

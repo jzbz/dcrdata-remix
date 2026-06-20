@@ -1,0 +1,73 @@
+{{define "tx" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Transaction"}}
+<body data-controller="theme clipboard age">
+<div class="app">
+  {{template "v2-sidebar" "transactions"}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      {{with .Data}}
+      <div class="page-head">
+        <p class="eyebrow">Decred Mainnet · Transaction</p>
+        <h1 style="display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap">
+          {{if .Type}}{{.Type}}{{else}}Transaction{{end}}
+          {{if gt .BlockHeight 0}}<span class="badge">Confirmed</span>{{else}}<span class="tag" data-kind="ticket">Unconfirmed</span>{{end}}
+        </h1>
+        <div class="hash" style="margin-top:var(--sp-3); color:var(--text-2)">
+          <span class="text">{{.TxID}}</span>
+          <button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.TxID}}" title="Copy txid">⧉</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Total</div><div class="v">{{threeSigFigs .Total}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Fee</div><div class="v">{{.Fee}}</div></div>
+        <div class="card stat"><div class="k">Fee Rate</div><div class="v">{{.FeeRate}}</div><div class="sub">per kB</div></div>
+        <div class="card stat"><div class="k">Size</div><div class="v">{{.FormattedSize}}</div></div>
+        <div class="card stat"><div class="k">Confirmations</div><div class="v">{{intComma .Confirmations}}</div></div>
+        <div class="card stat">
+          <div class="k">Block</div>
+          {{if gt .BlockHeight 0}}<div class="v"><a class="link" href="/v2/block/{{.BlockHash}}">#{{.BlockHeight}}</a></div><div class="sub" data-age-target="age" data-age="{{.Time.UNIX}}"></div>{{else}}<div class="v">—</div><div class="sub">in mempool</div>{{end}}
+        </div>
+      </div>
+
+      <p class="section-title">Inputs &amp; outputs</p>
+      <div class="io-flow">
+        <div class="panel io-col">
+          <div class="io-head">{{len .Vin}} input{{if ne (len .Vin) 1}}s{{end}}</div>
+          {{range .Vin}}
+          <div class="io-row">
+            <div class="io-id">
+              {{if .TextIsHash}}<a class="link mono" href="/v2/tx/{{.Txid}}">{{.DisplayText}}</a>{{else}}<span class="tag" data-kind="ticket">{{.DisplayText}}</span>{{end}}
+            </div>
+            <div class="io-amt mono">{{.FormattedAmount}}</div>
+          </div>
+          {{end}}
+        </div>
+
+        <div class="io-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+        </div>
+
+        <div class="panel io-col">
+          <div class="io-head">{{len .Vout}} output{{if ne (len .Vout) 1}}s{{end}}</div>
+          {{range .Vout}}
+          <div class="io-row">
+            <div class="io-id">
+              {{if .Addresses}}<a class="link mono" href="/v2/address/{{index .Addresses 0}}">{{index .Addresses 0}}</a>{{else}}<span class="text-muted mono">{{.Type}}</span>{{end}}
+              {{if .Spent}}<span class="tag" data-kind="revoke" title="Spent">spent</span>{{else}}<span class="tag" data-kind="vote" title="Unspent">unspent</span>{{end}}
+            </div>
+            <div class="io-amt mono">{{.FormattedAmount}}</div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}{{/* with .Data */}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
