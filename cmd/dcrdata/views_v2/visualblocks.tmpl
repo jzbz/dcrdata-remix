@@ -1,0 +1,86 @@
+{{define "visualblocks" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Visual Blocks"}}
+<body data-controller="theme age">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--sp-3)">
+        <div><p class="eyebrow">Decred Mainnet</p><h1>Visual Blocks</h1></div>
+        <a class="btn" href="/v2/blocks">View blockchain history →</a>
+      </div>
+
+      <div class="vtrack-label" style="margin-bottom:var(--sp-4);gap:var(--sp-4);justify-content:flex-start;flex-wrap:wrap">
+        <span><span class="legend-dot" style="background:var(--turquoise)"></span> PoW</span>
+        <span><span class="legend-dot" style="background:var(--violet)"></span> PoS / tickets</span>
+        <span><span class="legend-dot" style="background:var(--amber)"></span> Project fund</span>
+        <span><span class="legend-dot" style="background:var(--blue)"></span> Fees / votes</span>
+        <span><span class="legend-dot" style="background:var(--down)"></span> Revocation / no</span>
+      </div>
+
+      <div class="vblocks-grid">
+        {{with .Mempool}}
+        <div class="vblock is-mempool">
+          <div class="vblock-head">
+            <a class="h height-link" href="/v2/mempool">Mempool</a>
+            <span class="t">{{threeSigFigs .Total}}</span>
+          </div>
+          <span class="vblock-age" data-age-target="age" data-age="{{.Time}}"></span>
+          <div class="vtrack" title="Block rewards">
+            <span class="seg pow" style="flex-grow:{{toFloat64Amount .Subsidy.PoW}}"></span>
+            <span class="seg pos" style="flex-grow:{{toFloat64Amount .Subsidy.PoS}}"></span>
+            <span class="seg dev" style="flex-grow:{{toFloat64Amount .Subsidy.Dev}}"></span>
+            <span class="seg fees" style="flex-grow:{{.Fees}}"></span>
+          </div>
+          {{template "v2-vtracks" .}}
+        </div>
+        {{end}}
+
+        {{range .Blocks}}
+        <div class="vblock">
+          <div class="vblock-head">
+            <a class="h height-link" href="/v2/block/{{.Height}}">{{.Height}}</a>
+            <span class="t">{{threeSigFigs .Total}}</span>
+          </div>
+          <span class="vblock-age" data-age-target="age" data-age="{{.Time.UNIX}}"></span>
+          <div class="vtrack" title="Block rewards">
+            <span class="seg pow" style="flex-grow:{{toFloat64Amount .Subsidy.PoW}}"></span>
+            <span class="seg pos" style="flex-grow:{{toFloat64Amount .Subsidy.PoS}}"></span>
+            <span class="seg dev" style="flex-grow:{{toFloat64Amount .Subsidy.Developer}}"></span>
+            <span class="seg fees" style="flex-grow:{{.Fees}}"></span>
+          </div>
+          {{template "v2-vtracks" .}}
+        </div>
+        {{end}}
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{- end}}
+
+{{/* v2-vtracks renders the vote / ticket+revocation / transaction rows shared
+     by both the mempool card and the block cards. Expects . to expose Votes,
+     Tickets, Revocations and Transactions ([]*TrimmedTxInfo). */}}
+{{define "v2-vtracks" -}}
+<div class="vtrack" title="Votes">
+  {{range .Votes}}<span class="cell {{if .VoteValid}}vote-yes{{else}}vote-no{{end}}" title="Vote"></span>{{end}}
+  {{if lt (len .Votes) 5}}{{range (zeroSlice (intSubtract 5 (len .Votes)))}}<span class="cell" title="Empty vote slot"></span>{{end}}{{end}}
+</div>
+<div class="vtrack" title="Tickets &amp; revocations">
+  {{$tickets := .Tickets}}{{$tc := len .Tickets}}{{if gt $tc 50}}{{$tickets = clipSlice .Tickets 30}}{{end}}
+  {{range $tickets}}<span class="cell ticket" title="Ticket"></span>{{end}}
+  {{range .Revocations}}<span class="cell rev" title="Revocation"></span>{{end}}
+  {{$used := intAdd (len $tickets) (len .Revocations)}}{{if lt $used 20}}{{range (zeroSlice (intSubtract 20 $used))}}<span class="cell" title="Empty ticket slot"></span>{{end}}{{end}}
+</div>
+<div class="vtrack" title="Regular transactions">
+  {{$txs := .Transactions}}{{$xc := len .Transactions}}{{if gt $xc 50}}{{$txs = clipSlice .Transactions 30}}{{end}}
+  {{range $txs}}<span class="cell tx" style="flex-grow:{{.Total}}" title="Transaction"></span>{{end}}
+  {{if eq $xc 0}}<span class="cell" title="No regular transactions"></span>{{end}}
+</div>
+<div class="vtrack-label"><span>{{len .Votes}} votes</span><span>{{len .Tickets}} tickets</span><span>{{len .Transactions}} txns</span></div>
+{{- end}}

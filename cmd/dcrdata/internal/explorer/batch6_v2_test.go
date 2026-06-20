@@ -3,7 +3,13 @@
 
 package explorer
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
+	"github.com/decred/dcrdata/v8/explorer/types"
+)
 
 func TestV2RawTxRenders(t *testing.T) {
 	out := renderV2(t, "rawtx", struct {
@@ -51,5 +57,52 @@ func TestV2AttackCostRenders(t *testing.T) {
 		"data-attackcost-target=\"graph\"",         // chart container
 		"data-attackcost-target=\"total\"",         // summary total
 		"data-action=\"input->attackcost#updateSliderData\"",
+	)
+}
+
+func tvtx(id string, total float64, valid bool) *types.TrimmedTxInfo {
+	return &types.TrimmedTxInfo{TxBasic: &types.TxBasic{TxID: id, Total: total}, VoteValid: valid, VinCount: 1, VoutCount: 2}
+}
+
+func TestV2VisualBlocksRenders(t *testing.T) {
+	now := time.Now()
+	out := renderV2(t, "visualblocks", struct {
+		*CommonPageData
+		Info    *types.HomeInfo
+		Mempool *types.TrimmedMempoolInfo
+		Blocks  []*types.TrimmedBlockInfo
+	}{
+		CommonPageData: tdCommon(),
+		Info:           &types.HomeInfo{},
+		Mempool: &types.TrimmedMempoolInfo{
+			Total: 421.5, Fees: 0.12, Time: now.Unix(),
+			Subsidy:      types.BlockSubsidy{PoW: 800000000, PoS: 200000000, Dev: 100000000},
+			Votes:        []*types.TrimmedTxInfo{tvtx("v1", 1.2, true), tvtx("v2", 1.2, false)},
+			Tickets:      []*types.TrimmedTxInfo{tvtx("t1", 214.6, false)},
+			Transactions: []*types.TrimmedTxInfo{tvtx("x1", 50.4, false)},
+		},
+		Blocks: []*types.TrimmedBlockInfo{
+			{
+				Height: 905142, Total: 12481.06, Fees: 0.34, Time: types.NewTimeDef(now),
+				Subsidy:      &chainjson.GetBlockSubsidyResult{PoW: 800000000, PoS: 200000000, Developer: 100000000},
+				Votes:        []*types.TrimmedTxInfo{tvtx("bv1", 1.2, true), tvtx("bv2", 1.2, true), tvtx("bv3", 1.2, true), tvtx("bv4", 1.2, true), tvtx("bv5", 1.2, true)},
+				Tickets:      []*types.TrimmedTxInfo{tvtx("bt1", 214.6, false), tvtx("bt2", 214.6, false)},
+				Revocations:  []*types.TrimmedTxInfo{tvtx("br1", 214.6, false)},
+				Transactions: []*types.TrimmedTxInfo{tvtx("bx1", 50.4, false), tvtx("bx2", 9.1, false)},
+			},
+		},
+	})
+	mustContain(t, out, "visualblocks",
+		"class=\"sidebar\"",
+		"Visual Blocks",
+		"vblock is-mempool",       // mempool card present
+		"/v2/mempool",             // mempool link
+		"/v2/block/905142",        // block links to v2 block page
+		"seg pow",                 // reward track segments
+		"cell vote-yes",           // valid vote cell
+		"cell vote-no",            // invalid vote cell
+		"cell ticket",             // ticket cell
+		"cell rev",                // revocation cell
+		"data-age-target=\"age\"", // age controller wired
 	)
 }
