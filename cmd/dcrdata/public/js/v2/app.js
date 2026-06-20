@@ -10,6 +10,7 @@ import ClipboardController from './controllers/clipboard_controller.js'
 import AgeController from './controllers/age_controller.js'
 import ChartController from './controllers/chart_controller.js'
 import CountController from './controllers/count_controller.js'
+import RawtxController from './controllers/rawtx_controller.js'
 
 const app = Application.start()
 app.register('theme', ThemeController)
@@ -17,5 +18,6 @@ app.register('clipboard', ClipboardController)
 app.register('age', AgeController)
 app.register('chart', ChartController)
 app.register('count', CountController)
+app.register('rawtx', RawtxController)
 
 window.dcrdata = { app }

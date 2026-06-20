@@ -358,6 +358,15 @@
   .field .mono { font-family: var(--font-mono); }
   .field-hint { font-size: 12px; color: var(--muted); }
 
+  /* Monospace output / decoded JSON block. */
+  .code-block {
+    margin: 0; padding: var(--sp-4); border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle); background: rgba(0, 0, 0, 0.22);
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.55;
+    color: var(--text-2); white-space: pre-wrap; word-break: break-word;
+    overflow: auto; max-height: 560px;
+  }
+
   /* Pager. */
   .pager { display: flex; gap: var(--sp-1); align-items: center; justify-content: flex-end; flex-wrap: wrap; }
   .pager a, .pager span { min-width: 32px; height: 32px; display: inline-grid; place-items: center; padding-inline: var(--sp-2); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-2); }
