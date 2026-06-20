@@ -89,6 +89,8 @@ func v2NavKey(path string) string {
 		return "charts"
 	case strings.Contains(path, "/staking"):
 		return "staking"
+	case strings.Contains(path, "/governance"):
+		return "governance"
 	default:
 		return "dashboard"
 	}
@@ -2052,6 +2054,48 @@ func (exp *explorerUI) StakingV2(w http.ResponseWriter, r *http.Request) {
 		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
 	}
 	exp.renderPage(w, exp.templatesV2, "staking", page)
+}
+
+// govProposal pairs a Politeia proposal with its computed vote metadata.
+type govProposal struct {
+	*pitypes.ProposalRecord
+	Meta *pitypes.ProposalMetadata
+}
+
+// governancePage is the data for the v2 governance page.
+type governancePage struct {
+	*CommonPageData
+	Treasury    *dbtypes.TreasuryBalance
+	TreasuryDCR float64
+	AddedDCR    float64
+	SpentDCR    float64
+	Proposals   []govProposal
+}
+
+// GovernanceV2 renders the redesigned governance page: treasury balance/activity
+// and Politeia proposal cards with vote bars (v2 only).
+func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
+	common := exp.commonData(r)
+	exp.pageData.RLock()
+	treasury := exp.pageData.HomeInfo.TreasuryBalance
+	exp.pageData.RUnlock()
+
+	page := &governancePage{CommonPageData: common, Treasury: treasury}
+	if treasury != nil {
+		page.TreasuryDCR = float64(treasury.Balance) / 1e8
+		page.AddedDCR = float64(treasury.Added) / 1e8
+		page.SpentDCR = float64(treasury.Spent) / 1e8
+	}
+	if exp.proposals != nil {
+		tip := exp.Height()
+		target := int64(exp.ChainParams.TargetTimePerBlock.Seconds())
+		if props, _, err := exp.proposals.ProposalsAll(0, 20); err == nil {
+			for _, p := range props {
+				page.Proposals = append(page.Proposals, govProposal{ProposalRecord: p, Meta: p.Metadata(tip, target)})
+			}
+		}
+	}
+	exp.renderPage(w, exp.templatesV2, "governance", page)
 }
 
 // Charts handles the charts displays showing the various charts plotted.

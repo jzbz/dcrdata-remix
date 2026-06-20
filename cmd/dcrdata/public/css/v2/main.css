@@ -380,6 +380,16 @@
   .donut { width: auto; height: 100%; max-width: 100%; display: block; margin-inline: auto; }
   @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
 
+  /* Governance proposal cards + vote bars. */
+  .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--gap); }
+  .prop-card { padding: var(--sp-4) var(--sp-5); }
+  .prop-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+  .prop-name { font-weight: 600; }
+  .votebar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--card-hover); margin: var(--sp-3) 0; }
+  .votebar .yes { background: var(--turquoise); }
+  .votebar .no { background: var(--down); }
+  .prop-stats { display: flex; gap: var(--sp-4); font-size: 13px; }
+
   /* Gauge (staking pool vs target). */
   .gauge { height: 12px; border-radius: 999px; background: var(--card-hover); overflow: hidden; }
   .gauge-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--turquoise)); }

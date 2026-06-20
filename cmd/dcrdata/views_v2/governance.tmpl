@@ -1,0 +1,56 @@
+{{define "governance" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Governance"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet · Governance</p><h1>Governance</h1></div>
+
+      <div class="stat-grid">
+        <div class="card stat" style="grid-column:span 2;padding:var(--sp-6)">
+          <div class="k">Treasury Balance</div>
+          <div class="cs-height" data-controller="count" data-count-to-value="{{printf "%.0f" .TreasuryDCR}}">{{threeSigFigs .TreasuryDCR}}</div>
+          <div class="sub">DCR · decentralized treasury</div>
+        </div>
+        <div class="card stat"><div class="k">Added</div><div class="v">{{threeSigFigs .AddedDCR}}</div><div class="sub">DCR all-time</div></div>
+        <div class="card stat"><div class="k">Spent</div><div class="v">{{threeSigFigs .SpentDCR}}</div><div class="sub">DCR all-time</div></div>
+      </div>
+
+      <p class="section-title">Treasury over time</p>
+      <div class="card" style="padding:var(--sp-5)">
+        <div class="chart-placeholder">treasury-over-time chart — pending a treasury chart endpoint</div>
+      </div>
+
+      <p class="section-title">Proposals</p>
+      {{if .Proposals}}
+      <div class="prop-grid">
+        {{range .Proposals}}
+        <div class="card prop-card">
+          <div class="prop-head">
+            <a class="prop-name link" href="/proposal/{{.Token}}">{{.Name}}</a>
+            {{with .Meta}}<span class="tag" data-kind="{{if .IsPassing}}vote{{else}}ticket{{end}}">{{.VoteStatusDesc}}</span>{{end}}
+          </div>
+          {{with .Meta}}
+          <div class="votebar"><div class="yes" style="width:{{printf "%.1f" .Approval}}%"></div><div class="no" style="width:{{printf "%.1f" .Rejection}}%"></div></div>
+          <div class="prop-stats">
+            <span class="amt-in">Yes {{intComma .Yes}}</span>
+            <span class="amt-out">No {{intComma .No}}</span>
+            <span class="text-muted">{{intComma .VoteCount}} votes</span>
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <div class="alert">No proposals available (Politeia integration is disabled or has no data).</div>
+      {{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
