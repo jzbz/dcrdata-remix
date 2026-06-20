@@ -1,0 +1,40 @@
+{{define "ticketpool" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Ticket Pool"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>Ticket pool</h1></div>
+
+      {{with .Tip}}
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Pool Size</div><div class="v">{{intComma .PoolSize}}</div><div class="sub">live tickets</div></div>
+        <div class="card stat"><div class="k">Pool Value</div><div class="v">{{threeSigFigs .PoolValue}}</div><div class="sub">DCR locked</div></div>
+        <div class="card stat"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div></div>
+      </div>
+      {{end}}
+
+      <div class="dash-2col">
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Pool Size</span></div>
+          <div class="chart-body" style="height:200px" data-controller="chart"
+               data-chart-url-value="/api/chart/ticket-pool-size?bin=day&axis=time"
+               data-chart-ykey-value="count" data-chart-color-value="#9B8CFF"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Pool Value</span></div>
+          <div class="chart-body" style="height:200px" data-controller="chart"
+               data-chart-url-value="/api/chart/ticket-pool-value?bin=day&axis=time"
+               data-chart-ykey-value="poolval" data-chart-color-value="#2ED6A1"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

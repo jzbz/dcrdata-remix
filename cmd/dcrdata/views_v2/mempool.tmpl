@@ -1,0 +1,68 @@
+{{define "mempool" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Mempool"}}
+<body data-controller="theme age">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>Mempool</h1></div>
+      {{with .Mempool}}
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Transactions</div><div class="v">{{intComma .NumAll}}</div><div class="sub">in mempool</div></div>
+        <div class="card stat"><div class="k">Regular</div><div class="v">{{intComma .NumRegular}}</div></div>
+        <div class="card stat"><div class="k">Votes</div><div class="v">{{intComma .NumVotes}}</div></div>
+        <div class="card stat"><div class="k">Tickets</div><div class="v">{{intComma .NumTickets}}</div></div>
+        <div class="card stat"><div class="k">Revocations</div><div class="v">{{intComma .NumRevokes}}</div></div>
+        <div class="card stat"><div class="k">Total Out</div><div class="v">{{threeSigFigs .TotalOut}}</div><div class="sub">DCR · {{.FormattedTotalSize}}</div></div>
+      </div>
+
+      {{if .Transactions}}
+      <p class="section-title">Regular transactions</p>
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Transaction</th><th class="hide-sm">In</th><th class="hide-sm">Out</th><th>Size</th><th class="hide-sm">Fee Rate</th><th>DCR</th><th>Age</th></tr></thead>
+          <tbody>
+            {{range .Transactions}}
+            <tr>
+              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td class="hide-sm num">{{.VinCount}}</td>
+              <td class="hide-sm num">{{.VoutCount}}</td>
+              <td class="num">{{.Size}} B</td>
+              <td class="hide-sm num">{{threeSigFigs .FeeRate}}</td>
+              <td class="num">{{threeSigFigs .TotalOut}}</td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.Time}}"></td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+      {{end}}
+
+      {{if .Votes}}
+      <p class="section-title">Votes</p>
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Transaction</th><th>Size</th><th>DCR</th><th>Age</th></tr></thead>
+          <tbody>
+            {{range .Votes}}
+            <tr>
+              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td class="num">{{.Size}} B</td>
+              <td class="num">{{threeSigFigs .TotalOut}}</td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.Time}}"></td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+      {{end}}
+      {{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
