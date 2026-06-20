@@ -1,0 +1,84 @@
+{{define "dashboard" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Dashboard"}}
+<body data-controller="theme age">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>Network Overview</h1></div>
+
+      {{with .Info}}
+      <div class="panel chain-strip">
+        <div class="cs-main">
+          <div class="k">Best Block</div>
+          <div class="cs-height" data-controller="count" data-count-to-value="{{$.BestHeight}}">{{intComma $.BestHeight}}</div>
+        </div>
+        <div class="cs-col"><div class="k">Difficulty</div><div class="cs-v">{{threeSigFigs .Difficulty}}</div><div class="sub">PoW · BLAKE3</div></div>
+        <div class="cs-col"><div class="k">Hashrate</div><div class="cs-v">{{threeSigFigs .HashRate}}</div><div class="sub">Ph/s</div></div>
+        <div class="cs-col"><div class="k">Ticket Price</div><div class="cs-v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Coin Supply</div><div class="v">{{threeSigFigs $.SupplyDCR}}</div><div class="sub">DCR · {{printf "%.1f" $.SupplyPct}}% mined</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/coin-supply?bin=day&axis=time" data-chart-ykey-value="supply" data-chart-color-value="#2ED6A1"></div></div>
+        <div class="card stat"><div class="k">Hashrate</div><div class="v">{{threeSigFigs .HashRate}}</div><div class="sub">Ph/s</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/hashrate?bin=day&axis=time" data-chart-ykey-value="rate" data-chart-color-value="#36C5E0"></div></div>
+        <div class="card stat"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/ticket-price?bin=window&axis=time" data-chart-ykey-value="price" data-chart-color-value="#5BA8FF"></div></div>
+        <div class="card stat"><div class="k">Difficulty</div><div class="v">{{threeSigFigs .Difficulty}}</div><div class="sub">network</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/pow-difficulty?bin=window&axis=time" data-chart-ykey-value="diff" data-chart-color-value="#9B8CFF"></div></div>
+        <div class="card stat"><div class="k">Staked</div><div class="v">{{printf "%.1f" $.StakePct}}%</div><div class="sub">of circulating supply</div></div>
+        <div class="card stat"><div class="k">Treasury</div><div class="v">{{threeSigFigs $.TreasuryDCR}}</div><div class="sub">DCR</div></div>
+      </div>
+
+      <div class="dash-2col">
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Coin Supply</span><span class="v">{{threeSigFigs $.SupplyDCR}} DCR</span></div>
+          <div class="chart-body" style="height:240px" data-controller="chart"
+               data-chart-url-value="/api/chart/coin-supply?bin=day&axis=time"
+               data-chart-ykey-value="supply" data-chart-color-value="#2ED6A1"></div>
+        </div>
+        <div class="dash-donuts">
+          <div class="card donut-card">
+            <div class="k">Mined Supply</div>
+            <div class="donut-wrap" data-controller="chart" data-chart-kind-value="donut" data-chart-color-value="#2ED6A1" data-chart-max-value="100" data-chart-points-value="[{{printf "%.1f" $.SupplyPct}}]"></div>
+            <div class="donut-label">{{printf "%.1f" $.SupplyPct}}%</div>
+          </div>
+          <div class="card donut-card">
+            <div class="k">Staked</div>
+            <div class="donut-wrap" data-controller="chart" data-chart-kind-value="donut" data-chart-color-value="#9B8CFF" data-chart-max-value="100" data-chart-points-value="[{{printf "%.1f" $.StakePct}}]"></div>
+            <div class="donut-label">{{printf "%.1f" $.StakePct}}%</div>
+          </div>
+        </div>
+      </div>
+      {{end}}
+
+      <p class="section-title">Latest blocks</p>
+      <div class="panel">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Height</th><th class="hide-sm">Txns</th><th class="hide-sm">Votes</th><th>DCR</th><th>Size</th><th>Age</th></tr></thead>
+          <tbody>
+            {{range .Blocks}}
+            <tr>
+              <td><a class="height-link" href="/v2/block/{{.Height}}">{{.Height}}</a></td>
+              <td class="hide-sm num">{{.Transactions}}</td>
+              <td class="hide-sm chip" data-kind="votes">{{.Voters}}</td>
+              <td class="num">{{threeSigFigs .Total}}</td>
+              <td class="num">{{.FormattedBytes}}</td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.BlockTime.UNIX}}"></td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

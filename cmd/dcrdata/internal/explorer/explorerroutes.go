@@ -1985,6 +1985,47 @@ func (exp *explorerUI) DecodeTxPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// dashboardPage is the data for the v2 dashboard ("network overview") page.
+type dashboardPage struct {
+	*CommonPageData
+	Info        *types.HomeInfo
+	Blocks      []*types.BlockBasic
+	BestHeight  int64
+	SupplyDCR   float64
+	SupplyPct   float64
+	StakePct    float64
+	TreasuryDCR float64
+}
+
+// DashboardV2 renders the redesigned dashboard / network overview (v2 only).
+func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	common := exp.commonData(r)
+	height := exp.Height()
+	blocks := exp.dataSource.GetExplorerBlocks(ctx, int(height), int(height)-8)
+
+	exp.pageData.RLock()
+	homeInfo := exp.pageData.HomeInfo
+	exp.pageData.RUnlock()
+
+	supplyDCR := float64(homeInfo.CoinSupply) / 1e8
+	page := &dashboardPage{
+		CommonPageData: common,
+		Info:           homeInfo,
+		Blocks:         blocks,
+		BestHeight:     height,
+		SupplyDCR:      supplyDCR,
+	}
+	if supplyDCR > 0 {
+		page.SupplyPct = supplyDCR / 21000000 * 100 // 21M DCR cap
+		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
+	}
+	if homeInfo.TreasuryBalance != nil {
+		page.TreasuryDCR = float64(homeInfo.TreasuryBalance.Balance) / 1e8
+	}
+	exp.renderPage(w, exp.templatesV2, "dashboard", page)
+}
+
 // Charts handles the charts displays showing the various charts plotted.
 func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()

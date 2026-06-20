@@ -756,7 +756,8 @@ func _main(ctx context.Context) error {
 		r.Get("/months", explore.MonthBlocksListing)
 		r.Get("/years", explore.YearBlocksListing)
 		r.Get("/blocks", explore.Blocks)
-		r.Get("/v2/blocks", explore.BlocksV2) // redesigned (npm-free) preview
+		r.Get("/v2/dashboard", explore.DashboardV2) // redesign preview
+		r.Get("/v2/blocks", explore.BlocksV2)       // redesigned (npm-free) preview
 		r.Get("/ticketpricewindows", explore.StakeDiffWindows)
 		r.Get("/side", explore.SideChains)
 		r.Get("/rejects", func(w http.ResponseWriter, r *http.Request) {
