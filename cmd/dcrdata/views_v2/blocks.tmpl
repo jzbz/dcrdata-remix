@@ -1,0 +1,127 @@
+{{define "blocks" -}}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+
+  {{/* Apply the saved/system theme before paint to avoid a flash. */}}
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme') ||
+          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        document.documentElement.dataset.theme = t
+      } catch (e) { document.documentElement.dataset.theme = 'light' }
+    })()
+  </script>
+
+  <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
+
+  {{/* Resolve the bare specifier to the vendored ESM build — no bundler. */}}
+  <script type="importmap">
+  { "imports": { "@hotwired/stimulus": "{{asset "js/v2/vendor/stimulus.js"}}" } }
+  </script>
+  <script type="module" src="{{asset "js/v2/app.js"}}"></script>
+</head>
+<body data-controller="theme age">
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="/">
+        <span class="mark">d</span>
+        <span>dcrdata</span>
+      </a>
+      <nav class="nav">
+        <a href="/" class="label">Home</a>
+        <a href="/blocks" class="active label">Blocks</a>
+        <a href="/mempool" class="label">Mempool</a>
+        <a href="/charts" class="label">Charts</a>
+        <a href="/market" class="label">Market</a>
+        <button class="icon-btn" type="button"
+                data-action="theme#toggle"
+                data-theme-target="glyph"
+                aria-label="Toggle dark mode">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-head">
+      <h1>Blocks</h1>
+      <div class="toolbar">
+        <span class="rowcount">{{.RangeFrom}} &ndash; {{.RangeTo}} of {{.TotalRows}} rows</span>
+        <select class="select" aria-label="Rows per page">
+          <option>20 per page</option>
+          <option>30 per page</option>
+          <option>50 per page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="table-scroll">
+      <table class="data-table" data-age-target-scope>
+        <thead>
+          <tr>
+            <th>Height</th>
+            <th class="hide-sm">Transactions</th>
+            <th class="hide-sm">Votes</th>
+            <th class="hide-sm">Tickets</th>
+            <th class="hide-sm">Revocations</th>
+            <th>DCR</th>
+            <th>Size</th>
+            <th class="hide-sm">Version</th>
+            <th>Age</th>
+            <th>Time (UTC)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Blocks}}
+          <tr>
+            <td>
+              <a class="height-link" href="/block/{{.Height}}">
+                {{if not .Valid}}<span class="warn" title="Invalidated by stakeholders">⚠ </span>{{end}}{{.Height}}
+              </a>
+            </td>
+            <td class="hide-sm num{{if not .Valid}} muted{{end}}">{{.Transactions}}</td>
+            <td class="hide-sm chip" data-kind="votes">{{.Voters}}</td>
+            <td class="hide-sm chip" data-kind="tickets">{{.Tickets}}</td>
+            <td class="hide-sm chip" data-kind="revoke">{{.Revocations}}</td>
+            <td class="num">{{.Total}}</td>
+            <td class="num">{{.Size}}</td>
+            <td class="hide-sm num">{{.Version}}</td>
+            <td class="num text-muted" data-age-target="age" data-age="{{.Unix}}"></td>
+            <td class="mono">{{.Time}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="pager" style="margin-top: var(--sp-4)">
+      <a href="#">Newest</a>
+      <a href="#">Newer</a>
+      <a href="#" class="active">1</a>
+      <a href="#">2</a>
+      <a href="#">3</a>
+      <a href="#">Older</a>
+      <a href="#">Oldest</a>
+    </div>
+
+    <p class="center text-muted" style="margin-top: var(--sp-5)">
+      Looking for <a class="link" href="/side">orphaned blocks</a> or
+      <a class="link" href="/disapproved">PoS invalidated blocks</a>?
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>dcrdata — Decred block explorer</span>
+      <span class="mono">v2 preview · {{.TotalRows}} blocks</span>
+    </div>
+  </footer>
+</body>
+</html>
+{{end}}
