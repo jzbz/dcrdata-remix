@@ -1,0 +1,42 @@
+{{define "parameters" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Chain Parameters"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred {{.ChainParams.Name}}</p><h1>Chain parameters</h1></div>
+
+      <div class="panel"><div class="summary">
+        <div class="kv"><span class="k">Network</span><span class="v">{{.ChainParams.Name}}</span></div>
+        <div class="kv"><span class="k">Max Block Size</span><span class="v">{{intComma .MaximumBlockSize}} B</span></div>
+        <div class="kv"><span class="k">Target Pool Size</span><span class="v">{{intComma .ChainParams.TicketPoolSize}}</span></div>
+        <div class="kv"><span class="k">Actual Pool Size</span><span class="v">{{intComma .ActualTicketPoolSize}}</span></div>
+        <div class="kv"><span class="k">Tickets / Block</span><span class="v">{{.ChainParams.TicketsPerBlock}}</span></div>
+        <div class="kv"><span class="k">Ticket Maturity</span><span class="v">{{intComma .ChainParams.TicketMaturity}}</span></div>
+        <div class="kv"><span class="k">Coinbase Maturity</span><span class="v">{{intComma .ChainParams.CoinbaseMaturity}}</span></div>
+        <div class="kv"><span class="k">Stake Enabled Height</span><span class="v">{{intComma .ChainParams.StakeEnabledHeight}}</span></div>
+        <div class="kv"><span class="k">Stake Validation Height</span><span class="v">{{intComma .ChainParams.StakeValidationHeight}}</span></div>
+        <div class="kv"><span class="k">Stake Diff Window</span><span class="v">{{intComma .ChainParams.StakeDiffWindowSize}}</span></div>
+      </div></div>
+
+      <p class="section-title">Address prefixes</p>
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Type</th><th>Prefix</th><th>Description</th></tr></thead>
+          <tbody>
+            {{range .AddressPrefix}}
+            <tr><td>{{.Name}}</td><td class="mono">{{.Prefix}}</td><td class="text-muted">{{.Description}}</td></tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

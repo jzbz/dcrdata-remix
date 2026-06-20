@@ -17,8 +17,9 @@ import (
 func tdCommon() *CommonPageData {
 	return &CommonPageData{
 		NetName: "Mainnet", Version: "v8.0.0", ActiveNav: "blocks",
-		Tip:      &types.WebBasicBlock{Height: 905142},
-		DCRPrice: 18.42, PriceIndex: "USD",
+		Tip:         &types.WebBasicBlock{Height: 905142},
+		ChainParams: chaincfg.MainNetParams(),
+		DCRPrice:    18.42, PriceIndex: "USD",
 	}
 }
 
