@@ -1,0 +1,49 @@
+{{define "treasury" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Treasury"}}
+<body data-controller="theme age">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>Treasury</h1></div>
+
+      {{with .Data}}
+      {{with .Balance}}
+      <div class="stat-grid">
+        <div class="card stat" style="grid-column:span 2;padding:var(--sp-6)"><div class="k">Balance</div><div class="cs-height">{{dcr .Balance}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Added</div><div class="v">{{dcr .Added}}</div><div class="sub">DCR all-time</div></div>
+        <div class="card stat"><div class="k">Spent</div><div class="v">{{dcr .Spent}}</div><div class="sub">DCR all-time</div></div>
+      </div>
+      {{end}}
+
+      <p class="section-title">Treasury transactions</p>
+      {{if .Transactions}}
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Transaction</th><th>Flow</th><th>Amount</th><th class="hide-sm">Height</th><th>Age</th><th>Time (UTC)</th></tr></thead>
+          <tbody>
+            {{range .Transactions}}
+            <tr>
+              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td>{{if gt .Amount 0}}<span class="tag" data-kind="vote">credit</span>{{else}}<span class="tag" data-kind="revoke">debit</span>{{end}}</td>
+              <td class="num">{{if gt .Amount 0}}<span class="amt-in">+{{dcr .Amount}}</span>{{else}}<span class="amt-out">{{dcr .Amount}}</span>{{end}}</td>
+              <td class="hide-sm"><a class="height-link" href="/v2/block/{{.BlockHeight}}">{{intComma .BlockHeight}}</a></td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.BlockTime.UNIX}}"></td>
+              <td class="mono">{{.BlockTime.DatetimeWithoutTZ}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+      {{if len $.Pages}}<div class="pager" style="margin-top:var(--sp-4)">{{range $.Pages}}{{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}{{end}}</div>{{end}}
+      {{else}}<div class="alert">No treasury transactions found.</div>{{end}}
+      {{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
