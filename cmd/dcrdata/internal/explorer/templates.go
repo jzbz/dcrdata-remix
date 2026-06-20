@@ -334,6 +334,11 @@ func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template
 		// asset returns a content-hashed URL for a static file (no-build
 		// cache-busting). See AssetManager.
 		"asset": assets.URL,
+		// dcr formats an atom amount as a plain DCR string (shortest form),
+		// used by the v2 templates.
+		"dcr": func(atoms int64) string {
+			return strconv.FormatFloat(dcrutil.Amount(atoms).ToCoin(), 'f', -1, 64)
+		},
 		"blockVoteBitsStr": func(voteBits uint16) string {
 			if voteBits&1 == 0 {
 				return "disapprove"

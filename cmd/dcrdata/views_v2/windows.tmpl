@@ -1,0 +1,40 @@
+{{define "windows" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Ticket Price Windows"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>Ticket price windows</h1></div>
+      {{if .Data}}
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Window</th><th>End Height</th><th>Ticket Price</th><th class="hide-sm">Difficulty</th><th class="hide-sm">Txns</th><th class="hide-sm">Votes</th><th class="hide-sm">Tickets</th><th>Size</th><th>End Time (UTC)</th></tr></thead>
+          <tbody>
+            {{range .Data}}
+            <tr>
+              <td><a class="height-link" href="/v2/block/{{.EndBlock}}">{{.IndexVal}}</a></td>
+              <td class="num">{{intComma .EndBlock}}</td>
+              <td class="num">{{dcr .TicketPrice}}</td>
+              <td class="hide-sm num">{{threeSigFigs .Difficulty}}</td>
+              <td class="hide-sm num">{{intComma .Transactions}}</td>
+              <td class="hide-sm chip" data-kind="votes">{{intComma .Voters}}</td>
+              <td class="hide-sm chip" data-kind="tickets">{{intComma .FreshStake}}</td>
+              <td class="num">{{.FormattedSize}}</td>
+              <td class="mono">{{.FormattedEndTime}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+      {{if len .Pages}}<div class="pager" style="margin-top:var(--sp-4)">{{range .Pages}}{{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}{{end}}</div>{{end}}
+      {{else}}<div class="alert">No windows found.</div>{{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

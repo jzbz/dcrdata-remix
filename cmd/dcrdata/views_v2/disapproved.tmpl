@@ -1,0 +1,35 @@
+{{define "disapproved" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "PoS Invalidated Blocks"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>PoS-invalidated blocks</h1></div>
+      <p class="text-muted" style="margin-bottom:var(--sp-4)">Blocks whose regular transactions were invalidated by stakeholder votes.</p>
+      {{if .Data}}
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Height</th><th>Hash</th><th>Previous</th><th>Mainchain</th></tr></thead>
+          <tbody>
+            {{range .Data}}
+            <tr>
+              <td><a class="height-link" href="/v2/block/{{.Hash}}"><span class="warn">⚠ </span>{{.Height}}</a></td>
+              <td class="mono">{{.Hash}}</td>
+              <td class="mono text-muted">{{.PrevHash}}</td>
+              <td>{{if .IsMainchain}}<span class="badge">main</span>{{else}}<span class="tag" data-kind="ticket">side</span>{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div></div>
+      {{else}}<div class="alert">No PoS-invalidated blocks found.</div>{{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
