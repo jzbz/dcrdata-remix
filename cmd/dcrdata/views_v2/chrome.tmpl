@@ -1,0 +1,67 @@
+{{/*
+  Shared chrome for the v2 (npm-free) pages: the document head, the top nav, and
+  the footer. Each page provides its own <!DOCTYPE>/<html>/<body> so it can set
+  the body's data-controller list, and pulls in these partials:
+
+    {{template "v2-head" "Page Title"}}   - argument is the <title> text
+    {{template "v2-navbar" "blocks"}}     - argument is the active nav key
+    {{template "v2-footer" .}}            - argument is ignored
+*/}}
+
+{{define "v2-head"}}
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.}}</title>
+
+  {{/* Apply the saved/system theme before paint to avoid a flash. */}}
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme') ||
+          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        document.documentElement.dataset.theme = t
+      } catch (e) { document.documentElement.dataset.theme = 'light' }
+    })()
+  </script>
+
+  <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
+
+  {{/* Resolve the bare specifier to the vendored ESM build — no bundler. */}}
+  <script type="importmap">
+  { "imports": { "@hotwired/stimulus": "{{asset "js/v2/vendor/stimulus.js"}}" } }
+  </script>
+  <script type="module" src="{{asset "js/v2/app.js"}}"></script>
+</head>
+{{end}}
+
+{{define "v2-navbar"}}
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/">
+      <span class="mark">d</span>
+      <span>dcrdata</span>
+    </a>
+    <nav class="nav">
+      <a href="/" class="label{{if eq . "home"}} active{{end}}">Home</a>
+      <a href="/v2/blocks" class="label{{if eq . "blocks"}} active{{end}}">Blocks</a>
+      <a href="/mempool" class="label{{if eq . "mempool"}} active{{end}}">Mempool</a>
+      <a href="/charts" class="label{{if eq . "charts"}} active{{end}}">Charts</a>
+      <a href="/market" class="label{{if eq . "market"}} active{{end}}">Market</a>
+      <button class="icon-btn" type="button"
+              data-action="theme#toggle"
+              data-theme-target="glyph"
+              aria-label="Toggle dark mode">☾</button>
+    </nav>
+  </div>
+</header>
+{{end}}
+
+{{define "v2-footer"}}
+<footer class="site-footer">
+  <div class="container">
+    <span>dcrdata — Decred block explorer</span>
+    <span class="mono">v2 preview</span>
+  </div>
+</footer>
+{{end}}

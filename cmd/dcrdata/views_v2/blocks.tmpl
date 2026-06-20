@@ -1,50 +1,9 @@
 {{define "blocks" -}}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Decred Blocks</title>
-
-  {{/* Apply the saved/system theme before paint to avoid a flash. */}}
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('theme') ||
-          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        document.documentElement.dataset.theme = t
-      } catch (e) { document.documentElement.dataset.theme = 'light' }
-    })()
-  </script>
-
-  <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
-
-  {{/* Resolve the bare specifier to the vendored ESM build — no bundler. */}}
-  <script type="importmap">
-  { "imports": { "@hotwired/stimulus": "{{asset "js/v2/vendor/stimulus.js"}}" } }
-  </script>
-  <script type="module" src="{{asset "js/v2/app.js"}}"></script>
-</head>
+{{template "v2-head" "Decred Blocks"}}
 <body data-controller="theme age">
-  <header class="site-header">
-    <div class="container">
-      <a class="brand" href="/">
-        <span class="mark">d</span>
-        <span>dcrdata</span>
-      </a>
-      <nav class="nav">
-        <a href="/" class="label">Home</a>
-        <a href="/v2/blocks" class="active label">Blocks</a>
-        <a href="/mempool" class="label">Mempool</a>
-        <a href="/charts" class="label">Charts</a>
-        <a href="/market" class="label">Market</a>
-        <button class="icon-btn" type="button"
-                data-action="theme#toggle"
-                data-theme-target="glyph"
-                aria-label="Toggle dark mode">☾</button>
-      </nav>
-    </div>
-  </header>
+{{template "v2-navbar" "blocks"}}
 
   <main class="container">
     {{$top := int64 0}}
@@ -122,12 +81,7 @@
     </p>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <span>dcrdata — Decred block explorer</span>
-      <span class="mono">v2 preview</span>
-    </div>
-  </footer>
+{{template "v2-footer" .}}
 </body>
 </html>
 {{end}}

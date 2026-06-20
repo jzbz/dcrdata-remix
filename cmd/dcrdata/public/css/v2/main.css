@@ -296,6 +296,96 @@
   .pager a.active { background: var(--accent); color: var(--accent-contrast); font-weight: 700; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+
+  /* Section heading above a panel or group. */
+  .section-title {
+    font-size: var(--fs-13);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-block: var(--sp-5) var(--sp-2);
+  }
+
+  /* Summary card: a responsive grid of label/value pairs, used on the block,
+     transaction and address pages. */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--sp-3) var(--sp-5);
+    padding: var(--sp-4) var(--sp-5);
+  }
+  .kv { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .kv .k { font-size: var(--fs-12); text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); }
+  .kv .v { font-size: var(--fs-16); font-variant-numeric: tabular-nums; }
+  .kv .v.mono { font-size: var(--fs-14); }
+
+  /* Truncating hash/identifier with a copy affordance. */
+  .hash {
+    font-family: var(--font-mono);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    max-width: 100%;
+  }
+  .hash .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy {
+    cursor: pointer;
+    color: var(--text-faint);
+    background: none;
+    border: 0;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  .copy:hover { color: var(--accent); }
+
+  /* Buttons. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: var(--fs-14);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-sm { padding: var(--sp-1) var(--sp-3); font-size: var(--fs-13); }
+
+  /* Transaction-type tags, colored to match the count chips. */
+  .tag {
+    display: inline-block;
+    padding: 1px var(--sp-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-12);
+    font-weight: 600;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .tag[data-kind="regular"] { color: var(--tx-regular); }
+  .tag[data-kind="ticket"]  { color: var(--tx-ticket); }
+  .tag[data-kind="vote"]    { color: var(--tx-vote); }
+  .tag[data-kind="revoke"]  { color: var(--tx-revoke); }
+
+  /* Inline notice / alert. */
+  .alert {
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: var(--fs-14);
+  }
+  .alert-warn {
+    color: var(--tx-revoke);
+    border-color: color-mix(in srgb, var(--tx-revoke) 40%, transparent);
+    background: color-mix(in srgb, var(--tx-revoke) 8%, transparent);
+  }
 }
 
 /* -------------------------------------------------------------- utility -- */

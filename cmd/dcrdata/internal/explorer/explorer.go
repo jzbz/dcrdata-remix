@@ -398,8 +398,9 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		}
 	}
 
-	// Redesigned (npm-free) pages. Self-contained, so no common templates.
-	exp.templatesV2 = newTemplates(v2Folder, cfg.ReloadHTML, nil, funcMap)
+	// Redesigned (npm-free) pages. They share the v2 chrome (head/nav/footer)
+	// defined in views_v2/chrome.tmpl.
+	exp.templatesV2 = newTemplates(v2Folder, cfg.ReloadHTML, []string{"chrome"}, funcMap)
 	for _, name := range []string{"blocks"} {
 		if err := exp.templatesV2.addTemplate(name); err != nil {
 			log.Errorf("Unable to create v2 html template %q: %v", name, err)

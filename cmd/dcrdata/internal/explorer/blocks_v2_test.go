@@ -20,7 +20,7 @@ func TestV2BlocksTemplateRenders(t *testing.T) {
 	assets := NewAssetManager("../../public")
 	funcMap := makeTemplateFuncMap(chaincfg.MainNetParams(), assets)
 
-	tmpls := newTemplates("../../views_v2", false, nil, funcMap)
+	tmpls := newTemplates("../../views_v2", false, []string{"chrome"}, funcMap)
 	if err := tmpls.addTemplate("blocks"); err != nil {
 		t.Fatalf("addTemplate(blocks): %v", err)
 	}
