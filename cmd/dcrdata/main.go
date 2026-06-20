@@ -793,6 +793,7 @@ func _main(ctx context.Context) error {
 		withCache.Get("/disapproved", explore.DisapprovedBlocks)
 		withCache.Get("/mempool", explore.Mempool)
 		withCache.Get("/charts", explore.Charts)
+		withCache.Get("/v2/charts", explore.Charts) // redesign preview
 		withCache.Get("/treasury", explore.TreasuryPage)
 		withCache.Get("/treasurytable", explore.TreasuryTable)
 		withCache.Get("/parameters", explore.ParametersPage)

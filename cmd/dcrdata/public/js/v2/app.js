@@ -8,10 +8,12 @@ import { Application } from '@hotwired/stimulus'
 import ThemeController from './controllers/theme_controller.js'
 import ClipboardController from './controllers/clipboard_controller.js'
 import AgeController from './controllers/age_controller.js'
+import ChartController from './controllers/chart_controller.js'
 
 const app = Application.start()
 app.register('theme', ThemeController)
 app.register('clipboard', ClipboardController)
 app.register('age', AgeController)
+app.register('chart', ChartController)
 
 window.dcrdata = { app }

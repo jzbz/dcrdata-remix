@@ -1,0 +1,71 @@
+{{define "charts" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Charts"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" "charts"}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow">Decred Mainnet · Charts</p>
+        <h1>Charts</h1>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Coin Supply</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/coin-supply?bin=day&axis=time"
+               data-chart-ykey-value="supply" data-chart-color-value="#2ED6A1"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Hashrate</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/hashrate?bin=day&axis=time"
+               data-chart-ykey-value="rate" data-chart-color-value="#36C5E0"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Transaction Count</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/tx-count?bin=day&axis=time"
+               data-chart-ykey-value="count" data-chart-color-value="#9B8CFF"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Fees</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/fees?bin=day&axis=time"
+               data-chart-ykey-value="fees" data-chart-color-value="#F5A623"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Ticket Price</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/ticket-price?bin=window&axis=time"
+               data-chart-ykey-value="price" data-chart-color-value="#5BA8FF"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">PoW Difficulty</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/pow-difficulty?bin=window&axis=time"
+               data-chart-ykey-value="diff" data-chart-color-value="#5BA8FF"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Block Time</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/duration-btw-blocks?bin=day&axis=time"
+               data-chart-ykey-value="duration" data-chart-color-value="#36C5E0"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-head"><span class="k">Privacy Participation</span></div>
+          <div class="chart-body" data-controller="chart"
+               data-chart-url-value="/api/chart/privacy-participation?bin=day&axis=time"
+               data-chart-ykey-value="anonymitySet" data-chart-color-value="#2ED6A1"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

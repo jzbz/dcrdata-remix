@@ -1969,7 +1969,7 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
 	exp.pageData.RUnlock()
 
-	str, err := exp.templates.exec("charts", struct {
+	pageData := struct {
 		*CommonPageData
 		Premine        int64
 		TargetPoolSize uint32
@@ -1977,7 +1977,15 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 		CommonPageData: exp.commonData(r),
 		Premine:        exp.premine,
 		TargetPoolSize: tpSize,
-	})
+	}
+
+	// The redesigned (npm-free) page is served under /v2 by the same handler.
+	if strings.HasPrefix(r.URL.Path, "/v2/") {
+		exp.renderPage(w, exp.templatesV2, "charts", pageData)
+		return
+	}
+
+	str, err := exp.templates.exec("charts", pageData)
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
