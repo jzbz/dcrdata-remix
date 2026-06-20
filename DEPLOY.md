@@ -1,0 +1,492 @@
+# Deploying dcrdata on a VPS
+
+This guide walks through a production deployment on a fresh Linux VPS
+(Ubuntu 24.04 LTS "Noble" or Debian 13 "Trixie"), including `arm64` hosts. The
+explorer runs as a plain Go binary behind [Caddy](https://caddyserver.com/),
+which reverse-proxies it and provisions TLS automatically. In production you can
+put [Cloudflare](#10-cloudflare-ddos-protection) in front for DDoS protection.
+
+Unlike a single-binary app, dcrdata is a **three-tier stack**: it indexes a
+[`dcrd`](https://github.com/decred/dcrd) full node into **PostgreSQL** and serves
+the result over HTTP.
+
+**Architecture**
+
+```
+                 (TLS, auto)          (HTTP, loopback)
+Cloudflare ──► Caddy ──────────────► dcrdata ──┬─► dcrd  (RPC, 127.0.0.1:9109, TLS)
+  (proxy)      :443                  :7777      │     └─ Decred P2P network :9108
+                                                │
+                                                └─► PostgreSQL (unix socket / :5432)
+```
+
+- **dcrd** — a full Decred node, run with `--txindex`, fully synced. dcrdata
+  talks to its RPC over TLS on loopback.
+- **PostgreSQL** — dcrdata's storage. The mainnet database is **large** and the
+  initial population is the slow part of the whole deploy.
+- **dcrdata** — the Go indexer + web server. Listens on `127.0.0.1:7777`.
+- **Caddy** — terminates TLS, redirects HTTP→HTTPS, and reverse-proxies to
+  dcrdata. HTTPS is automatic: it obtains and renews Let's Encrypt certificates
+  on its own. No certbot, no cron. (This replaces the old `nginx` setup.)
+
+> **Already running dcrd?** If you have a synced `dcrd` (on this host or
+> reachable over the network), skip installing another one — see
+> [`--skip-dcrd`](#connecting-to-an-existing-dcrd). Otherwise the deploy installs
+> and configures a dedicated node.
+
+---
+
+## System requirements
+
+dcrdata's PostgreSQL database for **mainnet** is sizeable and grows over time,
+and the initial sync is CPU- and I/O-heavy.
+
+| Resource | Minimum | Recommended |
+| --- | --- | --- |
+| vCPU | 2 | 4+ |
+| RAM | 4 GB | 8–16 GB |
+| Disk (SSD/NVMe) | 120 GB | 200 GB+ |
+| Network | — | unmetered; the node syncs the whole chain |
+
+> **Plan for the sync.** A from-scratch deploy must (1) sync `dcrd` (the full
+> chain with `txindex`, ~15–20 GB) and then (2) let dcrdata build its PostgreSQL
+> indexes from genesis. End to end this commonly takes **many hours to over a
+> day** depending on disk speed and CPU. The web UI serves a "syncing" status
+> page until it finishes. **Use SSD/NVMe** — spinning disks make this painful.
+
+---
+
+## Quick start (automated)
+
+The repository ships a [`deploy.sh`](deploy.sh) that performs every step in this
+guide. On a fresh VPS, as root:
+
+```sh
+git clone https://github.com/decred/dcrdata
+sudo ./dcrdata/deploy.sh --repo https://github.com/YOURFORK/dcrdata --domain explorer.example.com
+```
+
+> Point `--repo` at **your** fork to deploy your customized build. Omit it to
+> deploy upstream `decred/dcrdata`.
+
+It installs Go, Node.js, PostgreSQL, dcrd, and Caddy; creates the database;
+builds the explorer (back end + front end); and starts everything as hardened
+systemd services behind Caddy with automatic HTTPS.
+
+The script is idempotent, so **running it again upgrades an existing install**:
+it force-syncs the checkout to the latest remote commit, rebuilds, and only swaps
+the new binary into place if the build succeeds — a broken build never takes down
+the running service. (The force-sync discards local edits to tracked files in the
+checkout.)
+
+Useful flags:
+
+| Flag | Effect |
+| --- | --- |
+| `--domain <host>` | Domain to serve; Caddy provisions a TLS certificate for it. |
+| `--http` | Serve plain HTTP on `:80` (no domain) — handy for testing. |
+| `--repo <url>` | Git repository to deploy (default: `decred/dcrdata`). Point at your fork. |
+| `--testnet` | Index testnet instead of mainnet. |
+| `--skip-dcrd` | Don't install dcrd; connect to an existing node (see below). |
+| `--dcrdserv/-user/-pass/-cert` | Coordinates of an existing dcrd (with `--skip-dcrd`). |
+| `--go-version <v>` | Go toolchain version (default `1.26.4`). |
+| `--dcrd-version <v>` | dcrd version to `go install` (default `latest`). |
+
+Run `./deploy.sh --help` for the full list. The rest of this document explains
+what the script does, for manual setups or customization.
+
+---
+
+## 1. Provision the server
+
+Point your domain's `A`/`AAAA` DNS records at the VPS before starting (Caddy
+needs them resolving to issue a certificate; if you use Cloudflare, see
+[§10](#10-cloudflare-ddos-protection)).
+
+SSH in as a sudo-capable user and update the base system:
+
+```sh
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git ufw curl gnupg ca-certificates
+```
+
+Configure a basic firewall (allow SSH + web; the dcrd P2P port is outbound-only,
+so it needs no inbound rule):
+
+```sh
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+---
+
+## 2. Install Go
+
+dcrdata targets the Go version in `go.mod`. Distro packages are often older, so
+install the official toolchain:
+
+```sh
+GO_VERSION=1.26.4
+ARCH=$(dpkg --print-architecture)   # amd64 or arm64
+curl -sL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/go.sh
+export PATH=$PATH:/usr/local/go/bin
+go version
+```
+
+---
+
+## 3. Install Node.js (front-end build)
+
+The web assets are currently bundled with webpack, which needs Node.js 18+:
+
+```sh
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version
+```
+
+> This step is temporary: an in-progress remodel replaces the webpack/SCSS
+> pipeline with hand-authored CSS and native ES modules, after which the deploy
+> needs only `go build`. Until then, the front end is built with `npm`.
+
+---
+
+## 4. Install and tune PostgreSQL
+
+```sh
+sudo apt install -y postgresql
+```
+
+Create a role and database. We run dcrdata as an OS user named `dcrdata` and let
+it authenticate to PostgreSQL over the local unix socket via **peer auth**, so
+there is no database password to manage:
+
+```sh
+sudo useradd --system --create-home --home-dir /opt/dcrdata --shell /usr/sbin/nologin dcrdata
+sudo -u postgres createuser dcrdata
+sudo -u postgres createdb -O dcrdata dcrdata
+```
+
+Apply tuning. dcrdata ships suggested settings in
+[`db/dcrpg/postgresql-tuning.conf`](db/dcrpg/postgresql-tuning.conf); the values
+below are scaled for an 8 GB host. Drop them into the cluster's `conf.d`:
+
+```sh
+PG_VER=$(ls /etc/postgresql)
+sudo tee /etc/postgresql/$PG_VER/main/conf.d/dcrdata.conf >/dev/null <<'EOF'
+# dcrdata tuning — adjust shared_buffers/effective_cache_size to your RAM.
+synchronous_commit = off
+max_connections = 32
+shared_buffers = 2GB
+effective_cache_size = 6GB
+maintenance_work_mem = 512MB
+work_mem = 28MB
+wal_buffers = 16MB
+max_wal_size = 2GB
+min_wal_size = 1GB
+checkpoint_completion_target = 0.9
+random_page_cost = 1.1          # SSD/NVMe
+effective_io_concurrency = 200  # SSD/NVMe
+EOF
+sudo systemctl restart postgresql
+```
+
+> `synchronous_commit = off` dramatically speeds the initial bulk load. It is
+> safe for an explorer (the worst case after a crash is replaying a few recent
+> blocks), but if you prefer maximum durability set it back to `on` once synced.
+
+---
+
+## 5. Install and sync dcrd
+
+Build `dcrd` and `dcrctl` straight from source with the Go toolchain you just
+installed (architecture-independent, always a compatible release):
+
+```sh
+sudo useradd --system --create-home --home-dir /opt/dcrd --shell /usr/sbin/nologin dcrd
+sudo -u dcrd GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/decred/dcrd@latest
+sudo GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/decred/dcrd/cmd/dcrctl@latest
+```
+
+Configure it with an RPC user/password and `txindex` (required by dcrdata):
+
+```sh
+sudo -u dcrd mkdir -p /opt/dcrd/.dcrd
+RPCUSER=dcrd
+RPCPASS=$(openssl rand -hex 24)
+sudo -u dcrd tee /opt/dcrd/.dcrd/dcrd.conf >/dev/null <<EOF
+[Application Options]
+rpcuser=$RPCUSER
+rpcpass=$RPCPASS
+rpclisten=127.0.0.1:9109
+txindex=1
+EOF
+```
+
+Run it as a service. dcrd auto-generates `rpc.cert`/`rpc.key` on first start:
+
+```sh
+sudo tee /etc/systemd/system/dcrd.service >/dev/null <<'EOF'
+[Unit]
+Description=dcrd Decred full node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dcrd
+Group=dcrd
+ExecStart=/usr/local/bin/dcrd
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/dcrd
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now dcrd
+journalctl -u dcrd -f      # watch it sync; this takes a while
+```
+
+dcrdata reads dcrd's RPC certificate. It is a **public** certificate (only
+`rpc.key` is secret), so copy it where the `dcrdata` user can read it:
+
+```sh
+# Wait for first start to generate it, then:
+sudo install -m 644 -o dcrdata -g dcrdata /opt/dcrd/.dcrd/rpc.cert /opt/dcrdata/dcrd-rpc.cert
+```
+
+### Connecting to an existing dcrd
+
+If you already run a synced node, skip this section. Make sure it has
+`txindex=1` and an RPC user/pass, copy its `rpc.cert` to the dcrdata host, and in
+[§7](#7-configure-dcrdata) set `dcrdserv`/`dcrduser`/`dcrdpass`/`dcrdcert` to
+match. With the script: `--skip-dcrd --dcrdserv host:9109 --dcrduser u
+--dcrdpass p --dcrdcert /path/rpc.cert`.
+
+---
+
+## 6. Build the explorer
+
+Clone (your fork) into the service user's directory and build the back end and
+front end:
+
+```sh
+sudo git clone https://github.com/YOURFORK/dcrdata /opt/dcrdata/app
+cd /opt/dcrdata/app/cmd/dcrdata
+
+# Back end
+sudo /usr/local/go/bin/go build -o /opt/dcrdata/app/cmd/dcrdata/dcrdata .
+
+# Front end (webpack bundle into public/dist)
+sudo npm ci
+sudo npm run build
+
+sudo chown -R dcrdata:dcrdata /opt/dcrdata
+```
+
+dcrdata serves its templates (`views/`) and static assets (`public/`) relative
+to its working directory, so it must run from `/opt/dcrdata/app/cmd/dcrdata`.
+
+---
+
+## 7. Configure dcrdata
+
+Write the config into the service user's app-data directory. It wires dcrdata to
+dcrd and PostgreSQL and marks it as sitting behind a trusted proxy (Caddy):
+
+```sh
+sudo -u dcrdata mkdir -p /opt/dcrdata/appdata
+sudo -u dcrdata tee /opt/dcrdata/appdata/dcrdata.conf >/dev/null <<EOF
+[Application Options]
+# dcrd RPC
+dcrduser=dcrd
+dcrdpass=PASTE_THE_RPCPASS_FROM_STEP_5
+dcrdserv=127.0.0.1:9109
+dcrdcert=/opt/dcrdata/dcrd-rpc.cert
+
+# PostgreSQL (peer auth over the local socket — no password)
+pghost=/run/postgresql
+pguser=dcrdata
+pgdbname=dcrdata
+
+# Web server — listen on loopback; Caddy fronts it
+apilisten=127.0.0.1:7777
+apiproto=http
+
+# Behind a reverse proxy: trust X-Forwarded-* and pin the public host
+userealip=true
+trustproxy=true
+allowedhost=explorer.example.com
+EOF
+```
+
+> Replace `allowedhost` with your real domain and paste the dcrd RPC password.
+> For **testnet**, add `testnet=1` and use `dcrdserv=127.0.0.1:19109`.
+
+---
+
+## 8. Run dcrdata as a systemd service
+
+```sh
+sudo tee /etc/systemd/system/dcrdata.service >/dev/null <<'EOF'
+[Unit]
+Description=dcrdata Decred block explorer
+After=network-online.target postgresql.service dcrd.service
+Wants=network-online.target
+
+[Service]
+User=dcrdata
+Group=dcrdata
+WorkingDirectory=/opt/dcrdata/app/cmd/dcrdata
+ExecStart=/opt/dcrdata/app/cmd/dcrdata/dcrdata --appdata=/opt/dcrdata/appdata
+Restart=on-failure
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/dcrdata
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now dcrdata
+journalctl -u dcrdata -f      # watch the initial sync
+```
+
+The web server comes up immediately and serves a **syncing status page** until
+the PostgreSQL index catches up to the chain tip. Be patient on first run.
+
+---
+
+## 9. Reverse proxy + automatic HTTPS with Caddy
+
+Install Caddy from its official apt repository:
+
+```sh
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+  | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+  | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+Write a Caddyfile that proxies your domain to dcrdata, compresses responses,
+caches static assets, and sets sensible security headers. WebSocket upgrades
+(used for live updates on `/ws`) are handled automatically:
+
+```sh
+sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
+explorer.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:7777
+
+	# Cache fingerprinted static assets aggressively.
+	@assets path /css/* /js/* /fonts/* /images/* /dist/*
+	header @assets Cache-Control "public, max-age=604800"
+
+	header {
+		Referrer-Policy "same-origin"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		-Server
+	}
+}
+EOF
+
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+journalctl -u caddy -f      # watch certificate issuance
+```
+
+> Caddyfiles use **tabs** for indentation; the heredoc preserves them. Replace
+> `explorer.example.com` with your domain (in two places — the Caddyfile and
+> `allowedhost` in §7).
+
+Within a few seconds Caddy provisions a Let's Encrypt certificate and your site
+is live at `https://explorer.example.com`, HTTP redirecting to HTTPS, renewals
+handled in the background.
+
+> **Quick test without a domain:** replace the first line with `:80` (plain HTTP)
+> and browse to the server's IP.
+
+---
+
+## 10. Cloudflare (DDoS protection)
+
+To sit dcrdata behind Cloudflare in production:
+
+1. **DNS** — in the Cloudflare dashboard add an `A`/`AAAA` record for your domain
+   pointing at the VPS, **proxied** (orange cloud). This hides the origin IP and
+   absorbs volumetric attacks.
+
+2. **First certificate** — Caddy needs to reach Let's Encrypt to issue its cert.
+   Either:
+   - set the record **DNS-only** (grey cloud) for a minute so Caddy issues the
+     cert, then flip it back to **proxied**; or
+   - install a **Cloudflare Origin Certificate** and point Caddy at it with a
+     `tls /path/cert.pem /path/key.pem` directive (no public ACME needed).
+
+3. **SSL/TLS mode** — set Cloudflare to **Full (strict)** so it validates the
+   origin's certificate end-to-end.
+
+4. **Real client IP** — behind Cloudflare the connecting address Caddy sees is
+   Cloudflare's. Forward the true client IP to dcrdata (which has
+   `userealip=true`) by adding inside the `reverse_proxy` block:
+
+   ```caddyfile
+   reverse_proxy 127.0.0.1:7777 {
+   	header_up X-Real-IP {http.request.header.Cf-Connecting-Ip}
+   }
+   ```
+
+5. **Hardening** — optionally enable Cloudflare rate limiting / WAF rules, and
+   restrict your origin firewall (ufw) to allow `80`/`443` only from
+   [Cloudflare's IP ranges](https://www.cloudflare.com/ips/) so attackers can't
+   bypass the proxy by hitting the origin directly.
+
+---
+
+## 11. Updating to a new version
+
+```sh
+cd /opt/dcrdata/app
+sudo -u dcrdata git pull
+cd cmd/dcrdata
+sudo -u dcrdata /usr/local/go/bin/go build -o ./dcrdata .
+sudo -u dcrdata npm ci && sudo -u dcrdata npm run build
+sudo systemctl restart dcrdata
+```
+
+Or just re-run `deploy.sh`, which does all of this idempotently and only swaps in
+the new binary if the build succeeds.
+
+---
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `502 Bad Gateway` | Is dcrdata up? `systemctl status dcrdata`. Listening on `127.0.0.1:7777`? `ss -ltnp \| grep 7777`. |
+| Stuck on the "syncing" page | Normal on first run — initial PostgreSQL indexing is slow. Watch `journalctl -u dcrdata -f`. |
+| dcrdata exits: can't reach dcrd | Is dcrd synced and its RPC up? `dcrctl --rpcuser=… --rpcpass=… getinfo`. Cert path/permissions correct? |
+| dcrdata exits: dcrd version incompatible | Update dcrd (`go install github.com/decred/dcrd@latest`) — dcrdata checks the RPC API version on startup. |
+| `password authentication failed` (PG) | Peer auth needs the OS user and DB role to match (`dcrdata`). Run dcrdata as the `dcrdata` user and connect via `pghost=/run/postgresql`. |
+| Disk filling up | The mainnet PostgreSQL DB is large and grows. Monitor with `df -h` and `du -sh /var/lib/postgresql`. |
+| TLS certificate not issued | DNS must resolve to this host and ports 80+443 reachable. Behind Cloudflare, see §10 step 2. Watch `journalctl -u caddy -f`. |
+| Wrong client IPs in logs / rate limits | Set `userealip`/`trustproxy` (§7) and, behind Cloudflare, forward `CF-Connecting-IP` (§10 step 4). |
