@@ -763,6 +763,7 @@ func _main(ctx context.Context) error {
 			http.Redirect(w, r, "/disapproved", http.StatusPermanentRedirect)
 		})
 		r.With(explore.BlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.Block)
+		r.With(explore.BlockHashPathOrIndexCtx).Get("/v2/block/{blockhash}", explore.BlockV2) // redesign preview
 		r.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.TxPage)
 		r.With(explorer.TransactionHashCtx, explorer.TransactionIoIndexCtx).Get("/tx/{txid}/{inout}/{inoutid}", explore.TxPage)
 		r.With(explorer.AddressPathCtx).Get("/address/{address}", explore.AddressPage)

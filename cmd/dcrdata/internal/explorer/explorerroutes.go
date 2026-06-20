@@ -714,10 +714,10 @@ func (exp *explorerUI) assembleBlocksPage(w http.ResponseWriter, r *http.Request
 	}, true
 }
 
-// renderBlocksPage executes the "blocks" template from the given set with the
-// assembled page data and writes the response.
-func (exp *explorerUI) renderBlocksPage(w http.ResponseWriter, t templates, page *blocksPage) {
-	str, err := t.exec("blocks", page)
+// renderPage executes the named template from the given set with the supplied
+// data and writes the response. Shared by the legacy and v2 page handlers.
+func (exp *explorerUI) renderPage(w http.ResponseWriter, t templates, name string, data interface{}) {
+	str, err := t.exec(name, data)
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
@@ -730,19 +730,28 @@ func (exp *explorerUI) renderBlocksPage(w http.ResponseWriter, t templates, page
 
 func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	if page, ok := exp.assembleBlocksPage(w, r, "/blocks"); ok {
-		exp.renderBlocksPage(w, exp.templates, page)
+		exp.renderPage(w, exp.templates, "blocks", page)
 	}
 }
 
 // BlocksV2 renders the blocks list with the redesigned, npm-free template.
 func (exp *explorerUI) BlocksV2(w http.ResponseWriter, r *http.Request) {
 	if page, ok := exp.assembleBlocksPage(w, r, "/v2/blocks"); ok {
-		exp.renderBlocksPage(w, exp.templatesV2, page)
+		exp.renderPage(w, exp.templatesV2, "blocks", page)
 	}
 }
 
-// Block is the page handler for the "/block" path.
-func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
+// blockPage is the data passed to the block-detail template (legacy and v2).
+type blockPage struct {
+	*CommonPageData
+	Data           *types.BlockInfo
+	AltBlocks      []*dbtypes.BlockStatus
+	FiatConversion *exchanges.Conversion
+}
+
+// assembleBlockPage fetches and builds the data for the block-detail page. On
+// failure it writes an error response and returns ok=false.
+func (exp *explorerUI) assembleBlockPage(w http.ResponseWriter, r *http.Request) (page *blockPage, ok bool) {
 	ctx := r.Context()
 
 	// Retrieve the block specified on the path.
@@ -752,7 +761,7 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Unable to get block %s", hash)
 		exp.StatusPage(w, defaultErrorCode, "could not find that block", "",
 			ExpStatusNotFound)
-		return
+		return nil, false
 	}
 
 	// Check if there are any regular non-coinbase transactions in the block.
@@ -762,7 +771,7 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 	var err error
 	data.Misses, err = exp.dataSource.BlockMissedVotes(ctx, hash)
 	if exp.timeoutErrorPage(w, err, "BlockMissedVotes") {
-		return
+		return nil, false
 	}
 	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 		log.Warnf("Unable to retrieve missed votes for block %s: %v", hash, err)
@@ -771,7 +780,7 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 	var altBlocks []*dbtypes.BlockStatus
 	altBlocks, err = exp.dataSource.BlockStatuses(ctx, data.Height)
 	if exp.timeoutErrorPage(w, err, "BlockStatuses") {
-		return
+		return nil, false
 	}
 	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 		log.Warnf("Unable to retrieve chain status for block %s: %v", hash, err)
@@ -785,22 +794,24 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pageData := struct {
-		*CommonPageData
-		Data           *types.BlockInfo
-		AltBlocks      []*dbtypes.BlockStatus
-		FiatConversion *exchanges.Conversion
-	}{
+	page = &blockPage{
 		CommonPageData: exp.commonData(r),
 		Data:           data,
 		AltBlocks:      altBlocks,
 	}
-
 	if exp.xcBot != nil && time.Since(data.BlockTime.T) < time.Hour {
-		pageData.FiatConversion = exp.xcBot.Conversion(data.TotalSent)
+		page.FiatConversion = exp.xcBot.Conversion(data.TotalSent)
 	}
+	return page, true
+}
 
-	str, err := exp.templates.exec("block", pageData)
+// Block is the page handler for the "/block" path.
+func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
+	page, ok := exp.assembleBlockPage(w, r)
+	if !ok {
+		return
+	}
+	str, err := exp.templates.exec("block", page)
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
@@ -810,6 +821,13 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
+}
+
+// BlockV2 renders the block-detail page with the redesigned, npm-free template.
+func (exp *explorerUI) BlockV2(w http.ResponseWriter, r *http.Request) {
+	if page, ok := exp.assembleBlockPage(w, r); ok {
+		exp.renderPage(w, exp.templatesV2, "block", page)
+	}
 }
 
 // Mempool is the page handler for the "/mempool" path.

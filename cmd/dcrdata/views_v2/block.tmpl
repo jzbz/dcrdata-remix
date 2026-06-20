@@ -1,0 +1,108 @@
+{{define "block" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" (printf "Block %d" .Data.Height)}}
+<body data-controller="theme clipboard age">
+<div class="app">
+  {{template "v2-sidebar" "blocks"}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      {{with .Data}}
+      <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:var(--sp-3)">
+        <div>
+          <p class="eyebrow">Decred Mainnet · Block</p>
+          <h1 style="display:flex; align-items:center; gap:var(--sp-3)">
+            #{{.Height}}
+            {{if .Valid}}<span class="badge">Valid</span>{{else}}<span class="tag" data-kind="revoke">Invalidated</span>{{end}}
+            {{if not .MainChain}}<span class="tag" data-kind="ticket">Side chain</span>{{end}}
+          </h1>
+        </div>
+        <div class="toolbar">
+          {{if .PreviousHash}}<a class="btn btn-sm" href="/v2/block/{{.PreviousHash}}">← Prev</a>{{end}}
+          {{if .NextHash}}<a class="btn btn-sm" href="/v2/block/{{.NextHash}}">Next →</a>{{end}}
+        </div>
+      </div>
+
+      <div class="hash" style="margin-bottom:var(--sp-5); color:var(--text-2)">
+        <span class="text">{{.Hash}}</span>
+        <button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.Hash}}" title="Copy hash">⧉</button>
+        <span class="text-muted" style="font-size:13px">· mined <span data-age-target="age" data-age="{{.BlockTime.UNIX}}"></span> · {{.BlockTime.DatetimeWithoutTZ}} UTC</span>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Transactions</div><div class="v">{{.TxCount}}</div><div class="sub">{{len .Tx}} regular · {{len .Votes}} votes</div></div>
+        <div class="card stat"><div class="k">Total Sent</div><div class="v">{{threeSigFigs .TotalSent}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Size</div><div class="v">{{.FormattedBytes}}</div><div class="sub">{{.Version}} version</div></div>
+        <div class="card stat"><div class="k">Confirmations</div><div class="v">{{intComma .Confirmations}}</div></div>
+        <div class="card stat"><div class="k">Difficulty</div><div class="v">{{threeSigFigs .Difficulty}}</div></div>
+        <div class="card stat"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .SBits}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Mining Fee</div><div class="v">{{threeSigFigs .MiningFee}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Pool Size</div><div class="v">{{.PoolSize}}</div><div class="sub">tickets</div></div>
+      </div>
+
+      <p class="section-title">Block details</p>
+      <div class="panel">
+        <div class="summary">
+          <div class="kv"><span class="k">Merkle Root</span><span class="v mono"><span class="hash"><span class="text">{{.MerkleRoot}}</span><button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.MerkleRoot}}">⧉</button></span></span></div>
+          <div class="kv"><span class="k">Stake Root</span><span class="v mono"><span class="hash"><span class="text">{{.StakeRoot}}</span><button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.StakeRoot}}">⧉</button></span></span></div>
+          <div class="kv"><span class="k">Previous Block</span><span class="v mono"><a class="link hash" href="/v2/block/{{.PreviousHash}}"><span class="text">{{.PreviousHash}}</span></a></span></div>
+          <div class="kv"><span class="k">Next Block</span><span class="v mono">{{if .NextHash}}<a class="link hash" href="/v2/block/{{.NextHash}}"><span class="text">{{.NextHash}}</span></a>{{else}}—{{end}}</span></div>
+          <div class="kv"><span class="k">Nonce</span><span class="v mono">{{.Nonce}}</span></div>
+          <div class="kv"><span class="k">Bits</span><span class="v mono">{{.Bits}}</span></div>
+          <div class="kv"><span class="k">Stake Version</span><span class="v mono">{{.StakeVersion}}</span></div>
+          <div class="kv"><span class="k">Final State</span><span class="v mono">{{.FinalState}}</span></div>
+        </div>
+      </div>
+
+      {{if gt (len .Tx) 0}}
+        <p class="section-title">Regular transactions <span class="text-muted">({{len .Tx}})</span></p>
+        <div class="panel"><div class="table-scroll">{{template "v2-txtable" .Tx}}</div></div>
+      {{end}}
+      {{if gt (len .Votes) 0}}
+        <p class="section-title">Votes <span class="text-muted">({{len .Votes}})</span></p>
+        <div class="panel"><div class="table-scroll">{{template "v2-txtable" .Votes}}</div></div>
+      {{end}}
+      {{if gt (len .Tickets) 0}}
+        <p class="section-title">Tickets <span class="text-muted">({{len .Tickets}})</span></p>
+        <div class="panel"><div class="table-scroll">{{template "v2-txtable" .Tickets}}</div></div>
+      {{end}}
+      {{if gt (len .Revs) 0}}
+        <p class="section-title">Revocations <span class="text-muted">({{len .Revs}})</span></p>
+        <div class="panel"><div class="table-scroll">{{template "v2-txtable" .Revs}}</div></div>
+      {{end}}
+      {{end}}{{/* with .Data */}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{/* v2-txtable renders a table of TrimmedTxInfo (regular, votes, tickets, revocations). Arg: the slice. */}}
+{{define "v2-txtable"}}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Transaction</th>
+      <th class="hide-sm">Type</th>
+      <th class="hide-sm">In</th>
+      <th class="hide-sm">Out</th>
+      <th>Size</th>
+      <th>DCR</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .}}
+    <tr>
+      <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+      <td class="hide-sm"><span class="tag" data-kind="regular">{{.Type}}</span></td>
+      <td class="hide-sm num">{{.VinCount}}</td>
+      <td class="hide-sm num">{{.VoutCount}}</td>
+      <td class="num">{{.FormattedSize}}</td>
+      <td class="num">{{threeSigFigs .Total}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
