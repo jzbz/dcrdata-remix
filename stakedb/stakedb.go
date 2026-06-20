@@ -575,8 +575,13 @@ func (db *StakeDatabase) ConnectBlock(block *dcrutil.Block) error {
 	// Expiring tickets
 	expiring := db.BestNode.ExpiredByBlock()
 
-	// Tickets leaving the live ticket pool = winners + expires
-	liveOut := append(winners, expiring...)
+	// Tickets leaving the live ticket pool = winners + expires. Build a fresh
+	// slice rather than append onto winners: BestNode.Winners() returns the
+	// stake node's internal nextWinners slice, so appending could clobber its
+	// backing array if it has spare capacity.
+	liveOut := make([]chainhash.Hash, 0, len(winners)+len(expiring))
+	liveOut = append(liveOut, winners...)
+	liveOut = append(liveOut, expiring...)
 	// Tickets entering the pool = maturing tickets
 	poolDiff := &PoolDiff{
 		In:  maturingTickets,

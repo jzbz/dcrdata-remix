@@ -478,6 +478,21 @@ func (t *TimeDef) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.RFC3339())
 }
 
+// UnmarshalJSON implements json.Unmarshaler, parsing the RFC3339 string emitted
+// by MarshalJSON back into a TimeDef. Without this, TimeDef could be JSON
+// encoded but not decoded (e.g. round-tripping a type that embeds it).
+func (t *TimeDef) UnmarshalJSON(data []byte) error {
+	if t == nil {
+		return fmt.Errorf("TimeDef: UnmarshalJSON on nil pointer")
+	}
+	T, err := time.Parse(timeDefFmtJS, strings.Trim(string(data), `"`))
+	if err != nil {
+		return err
+	}
+	t.T = T.UTC()
+	return nil
+}
+
 // NewTimeDef constructs a TimeDef from the given time.Time. It presets the
 // timezone for formatting to UTC.
 func NewTimeDef(t time.Time) TimeDef {
@@ -1015,51 +1030,6 @@ type SyncResult struct {
 // JSONB is used to implement the sql.Scanner and driver.Valuer interfaces
 // required for the type to make a postgresql compatible JSONB type.
 type JSONB map[string]interface{}
-
-// Value satisfies driver.Valuer
-func (p VinTxPropertyARRAY) Value() (driver.Value, error) {
-	j, err := json.Marshal(p)
-	return j, err
-}
-
-// Scan satisfies sql.Scanner
-func (p *VinTxPropertyARRAY) Scan(src interface{}) error {
-	source, ok := src.([]byte)
-	if !ok {
-		return fmt.Errorf("scan type assertion .([]byte) failed")
-	}
-
-	var i interface{}
-	err := json.Unmarshal(source, &i)
-	if err != nil {
-		return err
-	}
-
-	// Set this JSONB
-	is, ok := i.([]interface{})
-	if !ok {
-		return fmt.Errorf("type assertion .([]interface{}) failed")
-	}
-	numVin := len(is)
-	ba := make(VinTxPropertyARRAY, numVin)
-	for ii := range is {
-		VinTxPropertyMapIface, ok := is[ii].(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("type assertion .(map[string]interface) failed")
-		}
-		b, err := json.Marshal(VinTxPropertyMapIface)
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(b, &ba[ii])
-		if err != nil {
-			return err
-		}
-	}
-	*p = ba
-
-	return nil
-}
 
 // DeletionSummary provides the number of rows removed from the tables when a
 // block is removed.

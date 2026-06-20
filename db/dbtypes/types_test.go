@@ -1,6 +1,7 @@
 package dbtypes
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -31,6 +32,49 @@ func TestTimeDefMarshal(t *testing.T) {
 
 	if string(jsonTime) != trefJSON {
 		t.Errorf("expected %s, got %s", trefJSON, string(jsonTime))
+	}
+}
+
+func TestTimeDefUnmarshal(t *testing.T) {
+	// A TimeDef should JSON round-trip: marshal then unmarshal yields the same
+	// instant, normalized to UTC.
+	orig := NewTimeDef(time.Unix(trefUNIX, 0))
+
+	b, err := json.Marshal(&orig)
+	if err != nil {
+		t.Fatalf("Marshal failed: %v", err)
+	}
+
+	var got TimeDef
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	if !got.T.Equal(orig.T) {
+		t.Errorf("round-trip mismatch: got %v, want %v", got.T, orig.T)
+	}
+	if got.T.Location() != time.UTC {
+		t.Errorf("UnmarshalJSON should yield a UTC time, got %v", got.T.Location())
+	}
+
+	// Also verify round-tripping inside an enclosing struct, the situation that
+	// previously failed because TimeDef had no UnmarshalJSON. The pointer-receiver
+	// MarshalJSON only applies to addressable values, so marshal via a pointer
+	// (as the codebase does), otherwise json falls back to default struct
+	// encoding of the embedded time.Time.
+	type wrapper struct {
+		When TimeDef `json:"when"`
+	}
+	wb, err := json.Marshal(&wrapper{When: orig})
+	if err != nil {
+		t.Fatalf("Marshal wrapper failed: %v", err)
+	}
+	var w wrapper
+	if err := json.Unmarshal(wb, &w); err != nil {
+		t.Fatalf("Unmarshal wrapper failed: %v", err)
+	}
+	if !w.When.T.Equal(orig.T) {
+		t.Errorf("wrapper round-trip mismatch: got %v, want %v", w.When.T, orig.T)
 	}
 }
 
