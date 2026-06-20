@@ -710,7 +710,6 @@ func _main(ctx context.Context) error {
 		FileServer(webMux, pathPrefix+"css", "./public/css", cacheControlMaxAge)
 		FileServer(webMux, pathPrefix+"fonts", "./public/fonts", cacheControlMaxAge)
 		FileServer(webMux, pathPrefix+"images", "./public/images", cacheControlMaxAge)
-		FileServer(webMux, pathPrefix+"dist", "./public/dist", cacheControlMaxAge)
 	}
 	// Mount under root (e.g. /js, /css, etc.).
 	mountAssetPaths("/")

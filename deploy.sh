@@ -3,10 +3,10 @@
 # deploy.sh — provision dcrdata on a fresh Debian 13 / Ubuntu 24.04 LTS VPS
 #             (amd64 or arm64).
 #
-# Installs Go, Node.js, PostgreSQL, dcrd, and Caddy (automatic HTTPS); creates
-# the database; builds the explorer (back end + front end); and runs it all as
-# hardened systemd services behind Caddy. Safe to re-run: every step is
-# idempotent, so this doubles as an updater.
+# Installs Go, PostgreSQL, dcrd, and Caddy (automatic HTTPS); creates the
+# database; builds the explorer; and runs it all as hardened systemd services
+# behind Caddy. The front end is plain CSS + native ES modules (no Node.js).
+# Safe to re-run: every step is idempotent, so this doubles as an updater.
 #
 # Usage (run as root or with sudo):
 #   sudo ./deploy.sh --domain explorer.example.com
@@ -159,18 +159,7 @@ else
   ok "Go installed: $($GO version)"
 fi
 
-# ---- 4. Node.js (front-end build) -----------------------------------------
-
-if command -v node >/dev/null 2>&1 && [[ "$(node -v | cut -dv -f2 | cut -d. -f1)" -ge 18 ]]; then
-  ok "Node.js already installed ($(node -v))"
-else
-  log "Installing Node.js LTS"
-  curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - >/dev/null 2>&1
-  apt-get install -y -qq nodejs >/dev/null
-  ok "Node.js installed ($(node -v))"
-fi
-
-# ---- 5. PostgreSQL --------------------------------------------------------
+# ---- 4. PostgreSQL --------------------------------------------------------
 
 if command -v psql >/dev/null 2>&1; then
   ok "PostgreSQL already installed"
@@ -220,7 +209,7 @@ EOF
 systemctl restart postgresql
 ok "PostgreSQL tuned (shared_buffers=${SHARED}MB, effective_cache_size=${CACHE}MB)"
 
-# ---- 6. dcrd --------------------------------------------------------------
+# ---- 5. dcrd --------------------------------------------------------------
 
 if [[ $SKIP_DCRD -eq 1 ]]; then
   log "Using existing dcrd at ${EXT_DCRDSERV}"
@@ -296,7 +285,7 @@ EOF
   ok "dcrd RPC cert published to ${DCRD_CERT_DST}"
 fi
 
-# ---- 7. Fetch & build dcrdata ---------------------------------------------
+# ---- 6. Fetch & build dcrdata ---------------------------------------------
 
 if [[ -d "${APP_DIR}/.git" ]]; then
   ACTION="upgrade"
@@ -314,18 +303,15 @@ fi
 # so a broken build never takes down the running service. -buildvcs=false: the
 # build runs as root over a checkout owned by the service user, which Go's VCS
 # stamping would reject as "dubiously owned".
-log "Building dcrdata (back end)"
+log "Building dcrdata"
 ( cd "$APP_CMD" && GOTOOLCHAIN=local "$GO" build -buildvcs=false -o "${APP_CMD}/dcrdata.new" . )
 chown "$DATA_USER:$DATA_USER" "${APP_CMD}/dcrdata.new"
-ok "back end built"
+ok "dcrdata built"
 
-# Front end: webpack bundle into public/dist (run as the service user). This is
-# in-place; it is the current pipeline pending the no-npm remodel.
-log "Building dcrdata (front end — npm)"
-sudo -u "$DATA_USER" bash -lc "cd '$APP_CMD' && npm ci --no-audit --no-fund && npm run build" >/dev/null
-ok "front-end assets built"
+# The front end is plain CSS + native ES modules served straight from
+# cmd/dcrdata/public — no bundler, no Node.js, nothing to build.
 
-# ---- 8. Configure dcrdata -------------------------------------------------
+# ---- 7. Configure dcrdata -------------------------------------------------
 
 log "Writing dcrdata config"
 install -d -o "$DATA_USER" -g "$DATA_USER" "$APPDATA"
@@ -357,7 +343,7 @@ chown "$DATA_USER:$DATA_USER" "${APPDATA}/dcrdata.conf"
 chmod 600 "${APPDATA}/dcrdata.conf"
 ok "config written to ${APPDATA}/dcrdata.conf"
 
-# ---- 9. dcrdata systemd service -------------------------------------------
+# ---- 8. dcrdata systemd service -------------------------------------------
 
 log "Writing dcrdata systemd unit"
 cat > /etc/systemd/system/dcrdata.service <<EOF
@@ -390,7 +376,7 @@ systemctl enable dcrdata >/dev/null 2>&1 || true
 systemctl restart dcrdata
 ok "dcrdata service running"
 
-# ---- 10. Caddy ------------------------------------------------------------
+# ---- 9. Caddy ------------------------------------------------------------
 
 if command -v caddy >/dev/null 2>&1; then
   ok "Caddy already installed ($(caddy version | head -1))"

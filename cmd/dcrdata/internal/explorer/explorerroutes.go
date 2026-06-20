@@ -191,85 +191,6 @@ type homeConversions struct {
 	TreasuryBalance *exchanges.Conversion
 }
 
-// Home is the page handler for the "/" path.
-func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	height, err := exp.dataSource.GetHeight(ctx)
-	if err != nil {
-		log.Errorf("GetHeight failed: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
-			ExpStatusError)
-		return
-	}
-
-	blocks := exp.dataSource.GetExplorerBlocks(ctx, int(height), int(height)-8)
-	var bestBlock *types.BlockBasic
-	if blocks == nil {
-		bestBlock = new(types.BlockBasic)
-	} else {
-		bestBlock = blocks[0]
-	}
-
-	// Safely retrieve the current inventory pointer.
-	inv := exp.MempoolInventory()
-
-	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
-	inv.RLock()
-	exp.pageData.RLock()
-
-	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
-
-	// Get fiat conversions if available
-	homeInfo := exp.pageData.HomeInfo
-	var conversions *homeConversions
-	xcBot := exp.xcBot
-	if xcBot != nil {
-		conversions = &homeConversions{
-			ExchangeRate:    xcBot.Conversion(1.0),
-			StakeDiff:       xcBot.Conversion(homeInfo.StakeDiff),
-			CoinSupply:      xcBot.Conversion(dcrutil.Amount(homeInfo.CoinSupply).ToCoin()),
-			PowSplit:        xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.PoW).ToCoin()),
-			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
-			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + homeInfo.TreasuryBalance.Balance).ToCoin()),
-		}
-	}
-
-	str, err := exp.templates.exec("home", struct {
-		*CommonPageData
-		Info          *types.HomeInfo
-		Mempool       *types.MempoolInfo
-		BestBlock     *types.BlockBasic
-		BlockTally    []int
-		Consensus     int
-		Blocks        []*types.BlockBasic
-		Conversions   *homeConversions
-		PercentChange float64
-	}{
-		CommonPageData: exp.commonData(r),
-		Info:           homeInfo,
-		Mempool:        inv,
-		BestBlock:      bestBlock,
-		BlockTally:     tallys,
-		Consensus:      consensus,
-		Blocks:         blocks,
-		Conversions:    conversions,
-		PercentChange:  homeInfo.PoolInfo.PercentTarget - 100,
-	})
-
-	inv.RUnlock()
-	exp.pageData.RUnlock()
-
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str) //nolint:errcheck
-}
-
 // SideChains is the page handler for the "/side" path.
 func (exp *explorerUI) SideChains(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -754,16 +675,10 @@ func (exp *explorerUI) renderPage(w http.ResponseWriter, t templates, name strin
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
+// BlocksV2 renders the blocks list.
+func (exp *explorerUI) BlocksV2(w http.ResponseWriter, r *http.Request) {
 	if page, ok := exp.assembleBlocksPage(w, r, "/blocks"); ok {
 		exp.renderPage(w, exp.templates, "blocks", page)
-	}
-}
-
-// BlocksV2 renders the blocks list with the redesigned, npm-free template.
-func (exp *explorerUI) BlocksV2(w http.ResponseWriter, r *http.Request) {
-	if page, ok := exp.assembleBlocksPage(w, r, "/v2/blocks"); ok {
-		exp.renderPage(w, exp.templatesV2, "blocks", page)
 	}
 }
 
@@ -831,28 +746,10 @@ func (exp *explorerUI) assembleBlockPage(w http.ResponseWriter, r *http.Request)
 	return page, true
 }
 
-// Block is the page handler for the "/block" path.
-func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
-	page, ok := exp.assembleBlockPage(w, r)
-	if !ok {
-		return
-	}
-	str, err := exp.templates.exec("block", page)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
-}
-
-// BlockV2 renders the block-detail page with the redesigned, npm-free template.
+// BlockV2 renders the block-detail page.
 func (exp *explorerUI) BlockV2(w http.ResponseWriter, r *http.Request) {
 	if page, ok := exp.assembleBlockPage(w, r); ok {
-		exp.renderPage(w, exp.templatesV2, "block", page)
+		exp.renderPage(w, exp.templates, "block", page)
 	}
 }
 
@@ -1422,22 +1319,7 @@ func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		pageData.Conversions.Fees = exp.xcBot.Conversion(tx.Fee.ToCoin())
 	}
 
-	// The redesigned (npm-free) page is served under /v2 by the same handler.
-	if strings.HasPrefix(r.URL.Path, "/v2/") {
-		exp.renderPage(w, exp.templatesV2, "tx", pageData)
-		return
-	}
-
-	str, err := exp.templates.exec("tx", pageData)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
+	exp.renderPage(w, exp.templates, "tx", pageData)
 }
 
 func (exp *explorerUI) txAtomicSwapsInfo(ctx context.Context, tx *types.TxInfo) (*txhelpers.TxSwapResults, error) {
@@ -1693,11 +1575,7 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 		limitN = 20
 	}
 
-	addrBase := "/address/"
-	if strings.HasPrefix(r.URL.Path, "/v2/") {
-		addrBase = "/v2/address/"
-	}
-	linkTemplate := fmt.Sprintf(addrBase+"%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
+	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
 
 	// Execute the HTML template.
 	pageData := &addressPage{
@@ -1708,150 +1586,10 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
 	}
 
-	// The redesigned (npm-free) page is served under /v2 by the same handler.
-	if strings.HasPrefix(r.URL.Path, "/v2/") {
-		exp.renderPage(w, exp.templatesV2, "address", pageData)
-		return
-	}
-
-	str, err := exp.templates.exec("address", pageData)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-
-	log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
-		float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
-
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
+	exp.renderPage(w, exp.templates, "address", pageData)
 }
 
-// AddressTable is the page handler for the "/addresstable" path.
-func (exp *explorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Grab the URL query parameters
-	address, txnType, limitN, offsetAddrOuts, err := parseAddressParams(r)
-	if err != nil {
-		log.Errorf("AddressTable request error: %v", err)
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	addrData, err := exp.AddressListData(ctx, address, txnType, limitN, offsetAddrOuts)
-	if err != nil {
-		log.Errorf("AddressListData error: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError),
-			http.StatusInternalServerError)
-		return
-	}
-
-	linkTemplate := "/address/" + addrData.Address + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txnType)
-
-	response := struct {
-		TxnCount int64        `json:"tx_count"`
-		HTML     string       `json:"html"`
-		Pages    []pageNumber `json:"pages"`
-	}{
-		TxnCount: addrData.TxnCount + addrData.NumUnconfirmed,
-		Pages:    calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
-	}
-
-	response.HTML, err = exp.templates.exec("addresstable", struct {
-		Data *dbtypes.AddressInfo
-	}{
-		Data: addrData,
-	})
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError),
-			http.StatusInternalServerError)
-		return
-	}
-
-	log.Tracef(`"addresstable" template HTML size: %.2f kiB (%s, %v, %d)`,
-		float64(len(response.HTML))/1024.0, address, txnType, addrData.NumTransactions)
-
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	//enc.SetEscapeHTML(false)
-	err = enc.Encode(response)
-	if err != nil {
-		log.Debug(err)
-	}
-}
-
-// TreasuryTable is the handler for the "/treasurytable" path.
-func (exp *explorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Grab the URL query parameters
-	txType, limitN, offset, err := parseTreasuryParams(r)
-	if err != nil {
-		log.Errorf("TreasuryTable request error: %v", err)
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	txns, err := exp.dataSource.TreasuryTxns(ctx, limitN, offset, txType)
-	if exp.timeoutErrorPage(w, err, "TreasuryTxns") {
-		return
-	} else if err != nil {
-		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
-		return
-	}
-
-	exp.pageData.RLock()
-	bal := exp.pageData.HomeInfo.TreasuryBalance
-	exp.pageData.RUnlock()
-
-	linkTemplate := "/treasury" + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txType)
-
-	response := struct {
-		TxnCount int64        `json:"tx_count"`
-		HTML     string       `json:"html"`
-		Pages    []pageNumber `json:"pages"`
-	}{
-		TxnCount: treasuryTypeCount(bal, txType),
-		Pages:    calcPages(int(treasuryTypeCount(bal, txType)), int(limitN), int(offset), linkTemplate),
-	}
-
-	type txData struct {
-		Transactions []*dbtypes.TreasuryTx
-	}
-
-	response.HTML, err = exp.templates.exec("treasurytable", struct {
-		Data txData
-	}{
-		Data: txData{
-			Transactions: txns,
-		},
-	})
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError),
-			http.StatusInternalServerError)
-		return
-	}
-
-	log.Tracef(`"treasurytable" template HTML size: %.2f kiB (%v, %d)`,
-		float64(len(response.HTML))/1024.0, txType, len(txns))
-
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	//enc.SetEscapeHTML(false)
-	err = enc.Encode(response)
-	if err != nil {
-		log.Debug(err)
-	}
-}
-
-// parseAddressParams parses tx filter parameters. Used by both /address and
-// /addresstable.
+// parseAddressParams parses tx filter parameters.
 func parseAddressParams(r *http.Request) (address string, txnType dbtypes.AddrTxnViewType, limitN, offsetAddrOuts int64, err error) {
 	// Get the address URL parameter, which should be set in the request context
 	// by the addressPathCtx middleware.
@@ -2114,22 +1852,7 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 		TargetPoolSize: tpSize,
 	}
 
-	// The redesigned (npm-free) page is served under /v2 by the same handler.
-	if strings.HasPrefix(r.URL.Path, "/v2/") {
-		exp.renderPage(w, exp.templatesV2, "charts", pageData)
-		return
-	}
-
-	str, err := exp.templates.exec("charts", pageData)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
+	exp.renderPage(w, exp.templates, "charts", pageData)
 }
 
 // Search implements a primitive search algorithm by checking if the value in
