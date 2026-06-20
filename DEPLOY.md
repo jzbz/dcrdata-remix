@@ -62,12 +62,12 @@ The repository ships a [`deploy.sh`](deploy.sh) that performs every step in this
 guide. On a fresh VPS, as root:
 
 ```sh
-git clone https://github.com/decred/dcrdata
-sudo ./dcrdata/deploy.sh --repo https://github.com/YOURFORK/dcrdata --domain explorer.example.com
+git clone https://github.com/jzbz/dcrdata-remix
+sudo ./dcrdata-remix/deploy.sh --domain explorer.example.com
 ```
 
-> Point `--repo` at **your** fork to deploy your customized build. Omit it to
-> deploy upstream `decred/dcrdata`.
+> By default the script deploys `jzbz/dcrdata-remix`. Point `--repo` at a
+> different fork to deploy your own build.
 
 It installs Go, PostgreSQL, dcrd, and Caddy; creates the database; builds the
 explorer; and starts everything as hardened systemd services behind Caddy with
@@ -86,7 +86,7 @@ Useful flags:
 | --- | --- |
 | `--domain <host>` | Domain to serve; Caddy provisions a TLS certificate for it. |
 | `--http` | Serve plain HTTP on `:80` (no domain) — handy for testing. |
-| `--repo <url>` | Git repository to deploy (default: `decred/dcrdata`). Point at your fork. |
+| `--repo <url>` | Git repository to deploy (default: `jzbz/dcrdata-remix`). Point at a fork to override. |
 | `--testnet` | Index testnet instead of mainnet. |
 | `--skip-dcrd` | Don't install dcrd; connect to an existing node (see below). |
 | `--dcrdserv/-user/-pass/-cert` | Coordinates of an existing dcrd (with `--skip-dcrd`). |
@@ -266,7 +266,7 @@ match. With the script: `--skip-dcrd --dcrdserv host:9109 --dcrduser u
 Clone (your fork) into the service user's directory and build the binary:
 
 ```sh
-sudo git clone https://github.com/YOURFORK/dcrdata /opt/dcrdata/app
+sudo git clone https://github.com/jzbz/dcrdata-remix /opt/dcrdata/app
 cd /opt/dcrdata/app/cmd/dcrdata
 
 sudo /usr/local/go/bin/go build -o /opt/dcrdata/app/cmd/dcrdata/dcrdata .

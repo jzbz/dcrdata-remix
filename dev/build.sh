@@ -3,19 +3,19 @@
 #
 #   build.sh performs the following actions:
 #       1. Compile go code, generating the main binary.
-#       2. Install webpack dependencies via npm install.
-#       3. Build the frontend files via npm run build, which creates the
-#          public/dist folder.
-#       4. Gzip the compressible static assets.
-#       5. (Optional) Install everything.
+#       2. Gzip the compressible static assets.
+#       3. (Optional) Install everything.
+#
+#   The front end is plain CSS + native ES modules served straight from
+#   public/, so there is no bundler step.
 #
 #   When run with no arguments, build.sh will use the repository root as the
 #   root folder. If not running from a git repository, the dcrdata_root folder
 #   must be specified.
 #
 #   Specify destination_folder to install the dcrdata executable and the static
-#   assets (public and views folders). When destination_folder is omitted, the
-#   generated files are not installed.
+#   assets (public and views_v2 folders). When destination_folder is omitted,
+#   the generated files are not installed.
 #
 #   Note that this script uses 7za to Gzip static assets. The standard gzip
 #   utility is not used since 7za compression rates are slightly better even for
@@ -46,10 +46,6 @@ pushd $ROOT/cmd/dcrdata > /dev/null
 echo "Building the dcrdata binary..."
 go build -v
 
-echo "Packaging static frontend assets..."
-npm clean-install
-npm run build
-
 echo "Gzipping assets for use with gzip_static..."
 find ./public -type f -name "*.gz" -execdir rm {} \;
 # Use GNU parallel if it is installed.
@@ -76,8 +72,8 @@ DEST=$2
 
 if [[ -n "$DEST" ]]; then
     sudo install -m 754 -o dcrdata -g decred ./dcrdata ${DEST}/
-    sudo rm -rf ${DEST}/views ${DEST}/public
-    sudo cp -R views public ${DEST}/
+    sudo rm -rf ${DEST}/views_v2 ${DEST}/public
+    sudo cp -R views_v2 public ${DEST}/
 fi
 
 popd > /dev/null

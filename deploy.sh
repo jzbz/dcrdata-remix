@@ -18,7 +18,7 @@
 # Options:
 #   --domain <host>    Domain to serve (Caddy provisions a TLS cert for it).
 #   --http             Serve plain HTTP on :80 instead of HTTPS (for testing).
-#   --repo <url>       Git repo to deploy        (default: decred/dcrdata; use your fork).
+#   --repo <url>       Git repo to deploy        (default: jzbz/dcrdata-remix; use a fork to override).
 #   --testnet          Index testnet instead of mainnet.
 #   --skip-dcrd        Do not install dcrd; connect to an existing node.
 #   --dcrdserv <addr>  Existing dcrd RPC host:port (with --skip-dcrd).
@@ -36,7 +36,7 @@ set -euo pipefail
 
 GO_VERSION="1.26.4"
 DCRD_VERSION="latest"
-REPO_URL="https://github.com/decred/dcrdata"
+REPO_URL="https://github.com/jzbz/dcrdata-remix"
 LISTEN="127.0.0.1:7777"
 DOMAIN=""
 HTTP_ONLY=0

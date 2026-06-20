@@ -1,7 +1,7 @@
 # dcrdata
 
-[![Build Status](https://github.com/decred/dcrdata/workflows/Build%20and%20Test/badge.svg)](https://github.com/decred/dcrdata/actions)
-[![Latest tag](https://img.shields.io/github/tag/decred/dcrdata.svg)](https://github.com/decred/dcrdata/tags)
+[![Build Status](https://github.com/jzbz/dcrdata-remix/workflows/Build%20and%20Test/badge.svg)](https://github.com/jzbz/dcrdata-remix/actions)
+[![Latest tag](https://img.shields.io/github/tag/jzbz/dcrdata-remix.svg)](https://github.com/jzbz/dcrdata-remix/tags)
 [![Go Report Card](https://goreportcard.com/badge/github.com/decred/dcrdata)](https://goreportcard.com/report/github.com/decred/dcrdata)
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 
@@ -9,8 +9,8 @@
 
 dcrdata is an original [Decred](https://www.decred.org/) block explorer, with
 packages and apps for data collection, presentation, and storage. The backend
-and middleware are written in Go. On the front end, Webpack enables the use of
-modern javascript features, as well as SCSS for styling.
+and middleware are written in Go. The front end is hand-authored modern CSS and
+native ES modules — no bundler, no Node.js — served directly from disk.
 
 - [dcrdata](#dcrdata)
   - [Overview](#overview)
@@ -129,9 +129,7 @@ Always run the Current release or on the Current stable branch. Do not use `mast
 
 ## Requirements
 
-- [Go](https://golang.org) 1.20 or 1.21
-- [Node.js](https://nodejs.org/en/download/) 16.x or later. Node.js is only used
-  as a build tool, and is **not used at runtime**.
+- [Go](https://golang.org) (see `go.mod` for the targeted version)
 - Running `dcrd` running with `--txindex`, and synchronized to the current best
   block on the network. On startup, dcrdata will verify that the dcrd version is
   compatible.
@@ -145,12 +143,10 @@ instructions are described below.
 
 ## Building
 
-The dcrdata build process comprises two general steps:
-
-1. Bundle the static web page assets with Webpack (via the `npm` tool).
-2. Build the `dcrdata` executable from the Go source files.
-
-These steps are described in detail in the following sections.
+The front end is hand-authored CSS + native ES modules served directly from
+`cmd/dcrdata/public` — there is no bundler, so building dcrdata is just building
+the Go binary. A [`Makefile`](Makefile) wraps the common tasks (`make build`,
+`make test`, `make lint`, `make run`).
 
 NOTE: The following instructions assume a Unix-like shell (e.g. bash).
 
@@ -170,42 +166,8 @@ NOTE: The following instructions assume a Unix-like shell (e.g. bash).
   this is no longer necessary (or recommend) with Go modules. For example:
 
   ```sh
-  git clone https://github.com/decred/dcrdata $HOME/go-work/github/decred/dcrdata
+  git clone https://github.com/jzbz/dcrdata-remix $HOME/go-work/github/jzbz/dcrdata-remix
   ```
-
-- [Install Node.js](https://nodejs.org/en/download/), which is required to lint
-  and package the static web assets.
-
-Note that none of the above is required at runtime.
-
-### Package the Static Web Assets
-
-[Webpack](https://webpack.js.org/), a JavaScript module bundler, is used to
-compile and package the static assets in the `cmd/dcrdata/public` folder.
-Node.js' `npm` tool is used to install the required Node.js dependencies and
-build the bundled JavaScript distribution for deployment.
-
-First, install the build dependencies:
-
-```sh
-cd cmd/dcrdata
-npm clean-install # creates node_modules folder fresh
-```
-
-Then, for production, build the webpack bundle:
-
-```sh
-npm run build # creates public/dist folder
-```
-
-Alternatively, for development, `npm` can be made to watch for and integrate
-JavaScript source changes:
-
-```sh
-npm run watch
-```
-
-See [Front End Development](#front-end-development) for more information.
 
 ### Building dcrdata with Go
 
@@ -250,32 +212,27 @@ The default paths for your system are shown in the `--help` description.
 If encountering errors involving file system paths, check the permissions on these
 folders to ensure that _the user running dcrdata_ is able to access these paths.
 
-The "public" and "views" folders _must_ be in the same folder as the `dcrdata`
-executable. Set read-only permissions as appropriate.
+The "public" and "views_v2" folders _must_ be in the same folder as the
+`dcrdata` executable. Set read-only permissions as appropriate.
 
 ## Updating
 
-Update the repository (assuming you have `master` checked out in `GOPATH`):
+Update the repository:
 
 ```sh
-cd $HOME/go-work/github/decred/dcrdata
-git pull origin master
+cd $HOME/go-work/github/jzbz/dcrdata-remix
+git pull
 ```
 
 Look carefully for errors with `git pull`, and reset locally modified files if
 necessary.
 
-Next, build `dcrdata` and bundle the web assets:
+Next, rebuild `dcrdata`:
 
 ```sh
 cd cmd/dcrdata
 go build -v
-npm clean-install
-npm run build # or npm run watch
 ```
-
-Note that performing the above commands with versions of Go prior to 1.16
-within `$GOPATH` may require setting `GO111MODULE=on`.
 
 ## Upgrading Instructions
 
@@ -406,8 +363,8 @@ suboptimal state. The main steps of the initial sync process are:
 9. Update project fund data and then idle
 
 Unlike dcrdata.conf, which must be placed in the `appdata` folder or explicitly
-set with `-C`, the "public" and "views" folders _must_ be in the same folder as
-the `dcrdata` executable.
+set with `-C`, the "public" and "views_v2" folders _must_ be in the same folder
+as the `dcrdata` executable.
 
 ## System Hardware Requirements
 
@@ -648,67 +605,36 @@ that other nodes have.
 
 ## Front End Development
 
-Make sure you have a recent version of [node and npm](https://nodejs.org/en/download/)
-installed.
+The front end has **no build step**: it is hand-authored CSS and native ES
+modules served straight from `cmd/dcrdata/public`, with the page templates in
+`cmd/dcrdata/views_v2`. There is no Node.js, npm, webpack, SCSS, or Bootstrap —
+just edit the files and reload the page.
 
-From the cmd/dcrdata directory, run the following command to install the node
-modules.
+### CSS
 
-`npm clean-install`
-
-This will create and install into a directory named `node_modules`.
-
-You'll also want to run `npm clean-install` after merging changes from upstream.
-It is run for you when you use the build script (`./dev/build.sh`).
-
-For development, there's a webpack script that watches for file changes and
-automatically bundles. To use it, run the following command in a separate
-terminal and leave it running while you work. You'll only use this command if
-you are editing javascript files.
-
-`npm run watch`
-
-For production, bundle assets via:
-
-`npm run build`
-
-You will need to at least `build` if changes have been made. `watch` essentially
-runs `build` after file changes, but also performs some additional checks.
-
-### CSS Guidelines
-
-Webpack compiles SCSS to CSS while bundling. The `watch` script described above
-also watches for changes in these files and performs linting to ensure [syntax
-compliance](https://github.com/stylelint/stylelint-config-standard).
-
-Before you write any CSS, see if you can achieve your goal by using existing
-classes available in Bootstrap 4. This helps prevent our stylesheets from
-getting bloated and makes it easier for things to work well across a wide range
-browsers & devices. Please take the time to [Read the
-docs](https://getbootstrap.com/docs/4.1/getting-started/introduction/)
-
-Note there is a dark mode, so make sure things look good with the dark
-background as well.
+Styles live in `cmd/dcrdata/public/css/v2/main.css` as plain, modern CSS:
+`@layer` for cascade order, custom properties (CSS variables) for the design
+tokens, nesting, and `light-dark()` for theming. There is a dark and a light
+theme, so make sure changes look good against both backgrounds.
 
 ### HTML
 
-The core functionality of dcrdata is server-side rendered in Go and designed to
-work well with javascript disabled. For users with javascript enabled,
-[Turbolinks](https://github.com/turbolinks/turbolinks) creates a persistent
-single page application that handles all HTML rendering.
-
-.tmpl files are cached by the backend, and can be reloaded via running
-`killall -USR1 dcrdata` from the command line.
+Pages are server-side rendered in Go from the templates in `views_v2`, sharing
+the chrome (head/sidebar/topbar) defined in `views_v2/chrome.tmpl`. The core
+functionality works with JavaScript disabled. `.tmpl` files are cached by the
+backend and can be reloaded with `killall -USR1 dcrdata` (or run with
+`--reload-html` during development).
 
 ### Javascript
 
-To encourage code that is idiomatic to Turbolinks based execution environment,
-javascript based enhancements should use [Stimulus](https://stimulusjs.org/)
-controllers with corresponding actions and targets. Keeping things tightly
-scoped with controllers and modules helps to localize complexity and maintain a
-clean application lifecycle. When using events handlers, bind and **unbind**
-them in the `connect` and `disconnect` function of controllers which executes
-when they get removed from the DOM.
+JavaScript enhancements use [Stimulus](https://stimulus.hotwired.dev/)
+controllers, loaded as native ES modules — the bare `@hotwired/stimulus`
+specifier is resolved by an `<script type="importmap">` to the vendored build in
+`public/js/v2/vendor`, and controllers are registered explicitly in
+`public/js/v2/app.js` (no bundler magic). Keep things tightly scoped with
+controllers; when using event handlers, bind and **unbind** them in the
+`connect` and `disconnect` methods so the lifecycle stays clean. Inline-SVG
+charts are generated by the dependency-free toolkit in `public/js/v2/charts.js`.
 
 ### Web Performance
 
@@ -773,8 +699,8 @@ of objects implementing the `MempoolDataSaver` interface.
 
 ## Plans
 
-See the GitHub [issue trackers](https://github.com/decred/dcrdata/issues) and
-the [project milestones](https://github.com/decred/dcrdata/milestones).
+See the GitHub [issue trackers](https://github.com/jzbz/dcrdata-remix/issues) and
+the [project milestones](https://github.com/jzbz/dcrdata-remix/milestones).
 
 ## Contributing
 
@@ -785,7 +711,7 @@ here's the gist of it:
 2. Create a branch for your work (`git checkout -b cool-stuff`).
 3. Code something great.
 4. Commit and push to your repo.
-5. Create a [pull request](https://github.com/decred/dcrdata/compare).
+5. Create a [pull request](https://github.com/jzbz/dcrdata-remix/compare).
 
 **DO NOT merge from master to your feature branch; rebase.**
 
