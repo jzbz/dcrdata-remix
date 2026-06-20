@@ -27,7 +27,7 @@
           <tbody>
             {{range .Transactions}}
             <tr>
-              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
               <td class="hide-sm num">{{.VinCount}}</td>
               <td class="hide-sm num">{{.VoutCount}}</td>
               <td class="num">{{.Size}} B</td>
@@ -49,7 +49,7 @@
           <tbody>
             {{range .Votes}}
             <tr>
-              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
               <td class="num">{{.Size}} B</td>
               <td class="num">{{threeSigFigs .TotalOut}}</td>
               <td class="num text-muted" data-age-target="age" data-age="{{.Time}}"></td>

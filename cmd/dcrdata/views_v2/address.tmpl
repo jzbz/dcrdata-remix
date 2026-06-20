@@ -49,7 +49,7 @@
           <tbody>
             {{range .Transactions}}
             <tr>
-              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
               <td class="hide-sm"><span class="tag" data-kind="regular">{{.TxType}}</span></td>
               <td class="num">{{if .IsFunding}}<span class="amt-in">+{{threeSigFigs .ReceivedTotal}}</span>{{else}}<span class="amt-out">&minus;{{threeSigFigs .SentTotal}}</span>{{end}}</td>
               <td class="hide-sm num">{{.Confirmations}}</td>

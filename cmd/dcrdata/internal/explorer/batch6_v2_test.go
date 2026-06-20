@@ -97,8 +97,8 @@ func TestV2VisualBlocksRenders(t *testing.T) {
 		"class=\"sidebar\"",
 		"Visual Blocks",
 		"vblock is-mempool",       // mempool card present
-		"/v2/mempool",             // mempool link
-		"/v2/block/905142",        // block links to v2 block page
+		"/mempool",                // mempool link
+		"/block/905142",           // block links to v2 block page
 		"seg pow",                 // reward track segments
 		"cell vote-yes",           // valid vote cell
 		"cell vote-no",            // invalid vote cell

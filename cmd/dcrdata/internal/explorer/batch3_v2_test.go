@@ -30,7 +30,7 @@ func TestV2AgendasTemplateRenders(t *testing.T) {
 	}{tdCommon(), []*agendas.AgendaTagged{
 		{ID: "treasury", Description: "Enable the decentralized treasury", QuorumProgress: 0.62, VoteVersion: 9},
 	}, nil})
-	mustContain(t, out, "agendas", "Consensus agendas", "/v2/agenda/treasury", "treasury", "Quorum progress")
+	mustContain(t, out, "agendas", "Consensus agendas", "/agenda/treasury", "treasury", "Quorum progress")
 }
 
 func TestV2AgendaTemplateRenders(t *testing.T) {

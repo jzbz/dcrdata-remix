@@ -14,7 +14,7 @@
         {{range .Agendas}}
         <div class="card prop-card">
           <div class="prop-head">
-            <a class="prop-name link" href="/v2/agenda/{{.ID}}">{{.ID}}</a>
+            <a class="prop-name link" href="/agenda/{{.ID}}">{{.ID}}</a>
             <span class="tag" data-kind="ticket">{{.Status.String}}</span>
           </div>
           <p class="text-muted" style="font-size:13px">{{.Description}}</p>

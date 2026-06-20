@@ -40,7 +40,7 @@ func TestV2SideChainsTemplateRenders(t *testing.T) {
 		*CommonPageData
 		Data []*dbtypes.BlockStatus
 	}{tdCommon(), []*dbtypes.BlockStatus{{Height: 905100, IsValid: true}}})
-	mustContain(t, out, "sidechains", "class=\"sidebar\"", "Side chain blocks", "/v2/block/", "905100")
+	mustContain(t, out, "sidechains", "class=\"sidebar\"", "Side chain blocks", "/block/", "905100")
 }
 
 func TestV2DisapprovedTemplateRenders(t *testing.T) {

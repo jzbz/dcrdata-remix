@@ -23,7 +23,7 @@ func TestV2ProposalsTemplateRenders(t *testing.T) {
 	}{tdCommon(), []*pitypes.ProposalRecord{
 		{Name: "Fund the thing", Token: "abc1234def", Username: "alice", TotalVotes: 10000, CommentsCount: 42},
 	}, map[ticketvotev1.VoteStatusT]string{}, 0, 20, 1})
-	mustContain(t, out, "proposals", "class=\"sidebar\"", "Proposals", "/v2/proposal/abc1234def", "Fund the thing", "alice")
+	mustContain(t, out, "proposals", "class=\"sidebar\"", "Proposals", "/proposal/abc1234def", "Fund the thing", "alice")
 }
 
 func TestV2ProposalTemplateRenders(t *testing.T) {
@@ -52,5 +52,5 @@ func TestV2TreasuryTemplateRenders(t *testing.T) {
 			{TxID: dbtypes.ChainHash{4, 5, 6}, Amount: -25000000000, BlockHeight: 904000, BlockTime: dbtypes.NewTimeDef(time.Now())},
 		},
 	}, nil})
-	mustContain(t, out, "treasury", "Treasury transactions", "/v2/tx/", "amt-in", "amt-out", "credit", "debit")
+	mustContain(t, out, "treasury", "Treasury transactions", "/tx/", "amt-in", "amt-out", "credit", "debit")
 }

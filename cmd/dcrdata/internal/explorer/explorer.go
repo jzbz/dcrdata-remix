@@ -382,31 +382,18 @@ func New(cfg *ExplorerConfig) *explorerUI {
 
 	funcMap := makeTemplateFuncMap(exp.ChainParams, exp.assets)
 
-	commonTemplates := []string{"extras"}
-	exp.templates = newTemplates(cfg.Viewsfolder, cfg.ReloadHTML, commonTemplates, funcMap)
-
-	tmpls := []string{"home", "blocks", "mempool", "block", "tx", "address",
-		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
-		"sidechains", "disapproved", "ticketpool", "visualblocks",
-		"windows", "timelisting", "addresstable", "proposals", "proposal",
-		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message"}
-
-	for _, name := range tmpls {
-		if err := exp.templates.addTemplate(name); err != nil {
-			log.Errorf("Unable to create new html template: %v", err)
-			return nil
-		}
-	}
-
-	// Redesigned (npm-free) pages. They share the v2 chrome (head/nav/footer)
-	// defined in views_v2/chrome.tmpl.
-	exp.templatesV2 = newTemplates(v2Folder, cfg.ReloadHTML, []string{"chrome"}, funcMap)
+	// The dark-glass (npm-free) v2 pages are now the canonical UI. They share
+	// the chrome (head/sidebar/topbar) defined in views_v2/chrome.tmpl. The
+	// handlers feed these templates the same data structs the legacy pages used,
+	// so exp.templates and exp.templatesV2 both point at this one set.
+	exp.templates = newTemplates(v2Folder, cfg.ReloadHTML, []string{"chrome"}, funcMap)
 	for _, name := range []string{"dashboard", "blocks", "block", "tx", "address", "charts", "staking", "governance", "sidechains", "disapproved", "windows", "timelisting", "mempool", "ticketpool", "parameters", "agendas", "agenda", "proposals", "proposal", "treasury", "verify_message", "insight_root", "status", "rawtx", "attackcost", "visualblocks", "market"} {
-		if err := exp.templatesV2.addTemplate(name); err != nil {
-			log.Errorf("Unable to create v2 html template %q: %v", name, err)
+		if err := exp.templates.addTemplate(name); err != nil {
+			log.Errorf("Unable to create html template %q: %v", name, err)
 			return nil
 		}
 	}
+	exp.templatesV2 = exp.templates
 
 	exp.addRoutes()
 

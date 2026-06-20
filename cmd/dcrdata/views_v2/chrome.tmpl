@@ -29,7 +29,7 @@
 
 {{define "v2-sidebar"}}
 <aside class="sidebar">
-  <a class="brand" href="/v2/dashboard">
+  <a class="brand" href="/">
     <span class="mark">d</span>
     <span>
       <span class="name">dcrdata</span><br>
@@ -38,31 +38,31 @@
   </a>
 
   <nav class="nav">
-    <a href="/v2/dashboard" class="{{if eq .ActiveNav "dashboard"}}active{{end}}">
+    <a href="/" class="{{if eq .ActiveNav "dashboard"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       Dashboard
     </a>
-    <a href="/v2/blocks" class="{{if eq .ActiveNav "blocks"}}active{{end}}">
+    <a href="/blocks" class="{{if eq .ActiveNav "blocks"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5M12 11v9"/></svg>
       Blocks
     </a>
-    <a href="/v2/blocks" class="{{if eq .ActiveNav "transactions"}}active{{end}}">
+    <a href="/blocks" class="{{if eq .ActiveNav "transactions"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
       Transactions
     </a>
-    <a href="/v2/blocks" class="{{if eq .ActiveNav "charts"}}active{{end}}">
+    <a href="/charts" class="{{if eq .ActiveNav "charts"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="m7 14 3-4 3 3 4-6"/></svg>
       Charts
     </a>
-    <a href="/v2/staking" class="{{if eq .ActiveNav "staking"}}active{{end}}">
+    <a href="/staking" class="{{if eq .ActiveNav "staking"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z"/><path d="M12 7v10"/></svg>
       Staking
     </a>
-    <a href="/v2/blocks" class="{{if eq .ActiveNav "address"}}active{{end}}">
+    <a href="/blocks" class="{{if eq .ActiveNav "address"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.5 17c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5M15 9h4M15 13h3"/></svg>
       Address
     </a>
-    <a href="/v2/governance" class="{{if eq .ActiveNav "governance"}}active{{end}}">
+    <a href="/governance" class="{{if eq .ActiveNav "governance"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4 3 7 7 8 4-1 7-4 7-8V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
       Governance
     </a>

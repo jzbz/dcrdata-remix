@@ -54,18 +54,18 @@ func TestV2BlockTemplateRenders(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"/css/v2/main.css?v=",   // pipeline/asset-buster
-		"Block 905142",          // <title> via printf helper
-		"class=\"sidebar\"",     // shell
-		"/v2/block/prevhash000", // prev nav
-		"/v2/block/nexthash000", // next nav
-		"Block details",         // details panel
-		"Merkle Root",           // kv summary
-		"Confirmations",         // stat tile
-		"Ticket Price",          // stat tile
-		"Regular transactions",  // tx section
-		"/v2/tx/tx1regular",     // tx links to v2 tx page
-		"Votes",                 // stake section
+		"/css/v2/main.css?v=",  // pipeline/asset-buster
+		"Block 905142",         // <title> via printf helper
+		"class=\"sidebar\"",    // shell
+		"/block/prevhash000",   // prev nav
+		"/block/nexthash000",   // next nav
+		"Block details",        // details panel
+		"Merkle Root",          // kv summary
+		"Confirmations",        // stat tile
+		"Ticket Price",         // stat tile
+		"Regular transactions", // tx section
+		"/tx/tx1regular",       // tx links to v2 tx page
+		"Votes",                // stake section
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 block page missing %q", want)

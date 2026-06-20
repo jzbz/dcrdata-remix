@@ -16,7 +16,7 @@
           <tbody>
             {{range .Data}}
             <tr>
-              <td><a class="height-link" href="/v2/block/{{.Hash}}">{{.Height}}</a></td>
+              <td><a class="height-link" href="/block/{{.Hash}}">{{.Height}}</a></td>
               <td class="mono">{{.Hash}}</td>
               <td class="mono text-muted">{{.PrevHash}}</td>
               <td>{{if .IsValid}}<span class="badge">approved</span>{{else}}<span class="tag" data-kind="revoke">disapproved</span>{{end}}</td>

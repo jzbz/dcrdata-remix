@@ -16,7 +16,7 @@
           <tbody>
             {{range .Data}}
             <tr>
-              <td><a class="height-link" href="/v2/block/{{.EndBlock}}">{{.IndexVal}}</a></td>
+              <td><a class="height-link" href="/block/{{.EndBlock}}">{{.IndexVal}}</a></td>
               <td class="num">{{intComma .EndBlock}}</td>
               <td class="num">{{dcr .TicketPrice}}</td>
               <td class="hide-sm num">{{threeSigFigs .Difficulty}}</td>

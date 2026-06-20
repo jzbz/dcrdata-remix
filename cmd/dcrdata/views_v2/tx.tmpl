@@ -29,7 +29,7 @@
         <div class="card stat"><div class="k">Confirmations</div><div class="v">{{intComma .Confirmations}}</div></div>
         <div class="card stat">
           <div class="k">Block</div>
-          {{if gt .BlockHeight 0}}<div class="v"><a class="link" href="/v2/block/{{.BlockHash}}">#{{.BlockHeight}}</a></div><div class="sub" data-age-target="age" data-age="{{.Time.UNIX}}"></div>{{else}}<div class="v">—</div><div class="sub">in mempool</div>{{end}}
+          {{if gt .BlockHeight 0}}<div class="v"><a class="link" href="/block/{{.BlockHash}}">#{{.BlockHeight}}</a></div><div class="sub" data-age-target="age" data-age="{{.Time.UNIX}}"></div>{{else}}<div class="v">—</div><div class="sub">in mempool</div>{{end}}
         </div>
       </div>
 
@@ -40,7 +40,7 @@
           {{range .Vin}}
           <div class="io-row">
             <div class="io-id">
-              {{if .TextIsHash}}<a class="link mono" href="/v2/tx/{{.Txid}}">{{.DisplayText}}</a>{{else}}<span class="tag" data-kind="ticket">{{.DisplayText}}</span>{{end}}
+              {{if .TextIsHash}}<a class="link mono" href="/tx/{{.Txid}}">{{.DisplayText}}</a>{{else}}<span class="tag" data-kind="ticket">{{.DisplayText}}</span>{{end}}
             </div>
             <div class="io-amt mono">{{.FormattedAmount}}</div>
           </div>
@@ -56,7 +56,7 @@
           {{range .Vout}}
           <div class="io-row">
             <div class="io-id">
-              {{if .Addresses}}<a class="link mono" href="/v2/address/{{index .Addresses 0}}">{{index .Addresses 0}}</a>{{else}}<span class="text-muted mono">{{.Type}}</span>{{end}}
+              {{if .Addresses}}<a class="link mono" href="/address/{{index .Addresses 0}}">{{index .Addresses 0}}</a>{{else}}<span class="text-muted mono">{{.Type}}</span>{{end}}
               {{if .Spent}}<span class="tag" data-kind="revoke" title="Spent">spent</span>{{else}}<span class="tag" data-kind="vote" title="Unspent">unspent</span>{{end}}
             </div>
             <div class="io-amt mono">{{.FormattedAmount}}</div>

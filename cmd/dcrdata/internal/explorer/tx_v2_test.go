@@ -56,9 +56,9 @@ func TestV2TxTemplateRenders(t *testing.T) {
 		"9c0d1e2f3a4b5c6d7e8f90a1b2c3d4e5", // txid
 		"Confirmed",                        // status badge
 		"io-flow",                          // inputs/outputs flow
-		"/v2/tx/prevtx0aaa",                // input links to v2 tx
-		"/v2/address/DsAddrOne111",         // output links to v2 address
-		"/v2/block/0000abcd",               // block link
+		"/tx/prevtx0aaa",                   // input links to v2 tx
+		"/address/DsAddrOne111",            // output links to v2 address
+		"/block/0000abcd",                  // block link
 		"2 outputs",                        // output count
 	} {
 		if !strings.Contains(out, want) {

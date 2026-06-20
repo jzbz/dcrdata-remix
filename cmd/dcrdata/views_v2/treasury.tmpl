@@ -27,10 +27,10 @@
           <tbody>
             {{range .Transactions}}
             <tr>
-              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
               <td>{{if gt .Amount 0}}<span class="tag" data-kind="vote">credit</span>{{else}}<span class="tag" data-kind="revoke">debit</span>{{end}}</td>
               <td class="num">{{if gt .Amount 0}}<span class="amt-in">+{{dcr .Amount}}</span>{{else}}<span class="amt-out">{{dcr .Amount}}</span>{{end}}</td>
-              <td class="hide-sm"><a class="height-link" href="/v2/block/{{.BlockHeight}}">{{intComma .BlockHeight}}</a></td>
+              <td class="hide-sm"><a class="height-link" href="/block/{{.BlockHeight}}">{{intComma .BlockHeight}}</a></td>
               <td class="num text-muted" data-age-target="age" data-age="{{.BlockTime.UNIX}}"></td>
               <td class="mono">{{.BlockTime.DatetimeWithoutTZ}}</td>
             </tr>

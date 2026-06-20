@@ -17,7 +17,7 @@
         {{range .Proposals}}
         <div class="card prop-card">
           <div class="prop-head">
-            <a class="prop-name link" href="/v2/proposal/{{.Token}}">{{.Name}}</a>
+            <a class="prop-name link" href="/proposal/{{.Token}}">{{.Name}}</a>
             <span class="tag" data-kind="ticket">{{index $.VotesStatus .VoteStatus}}</span>
           </div>
           <div class="prop-stats">
@@ -29,8 +29,8 @@
         {{end}}
       </div>
       <div class="pager" style="margin-top:var(--sp-5)">
-        {{if gt .Offset 0}}<a href="/v2/proposals?offset={{subtract .Offset .Limit}}&rows={{.Limit}}">Newer</a>{{end}}
-        {{if lt (add .Offset .Limit) .TotalCount}}<a href="/v2/proposals?offset={{add .Offset .Limit}}&rows={{.Limit}}">Older</a>{{end}}
+        {{if gt .Offset 0}}<a href="/proposals?offset={{subtract .Offset .Limit}}&rows={{.Limit}}">Newer</a>{{end}}
+        {{if lt (add .Offset .Limit) .TotalCount}}<a href="/proposals?offset={{add .Offset .Limit}}&rows={{.Limit}}">Older</a>{{end}}
       </div>
       {{else}}<div class="alert">No proposals available (Politeia integration disabled or empty).</div>{{end}}
     </main>

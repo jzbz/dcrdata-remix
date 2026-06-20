@@ -17,7 +17,7 @@
           <tbody>
             {{range .Data}}
             <tr>
-              <td><a class="height-link" href="/v2/block/{{.Hash}}"><span class="warn">⚠ </span>{{.Height}}</a></td>
+              <td><a class="height-link" href="/block/{{.Hash}}"><span class="warn">⚠ </span>{{.Height}}</a></td>
               <td class="mono">{{.Hash}}</td>
               <td class="mono text-muted">{{.PrevHash}}</td>
               <td>{{if .IsMainchain}}<span class="badge">main</span>{{else}}<span class="tag" data-kind="ticket">side</span>{{end}}</td>

@@ -75,15 +75,15 @@
       {{if len .Pages}}
       <div class="pager" style="margin-top: var(--sp-4)">
         {{if lt $top .BestBlock}}
-          <a href="/v2/blocks?height={{.BestBlock}}&rows={{.Rows}}">Newest</a>
-          <a href="/v2/blocks?height={{add $top (int64 (len .Data))}}&rows={{.Rows}}">Newer</a>
+          <a href="/blocks?height={{.BestBlock}}&rows={{.Rows}}">Newest</a>
+          <a href="/blocks?height={{add $top (int64 (len .Data))}}&rows={{.Rows}}">Newer</a>
         {{end}}
         {{range .Pages}}
           {{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}
         {{end}}
         {{if ge $top .Rows}}
-          <a href="/v2/blocks?height={{subtract $top (int64 (len .Data))}}&rows={{.Rows}}">Older</a>
-          <a href="/v2/blocks?height={{.OldestHeight}}&rows={{.Rows}}">Oldest</a>
+          <a href="/blocks?height={{subtract $top (int64 (len .Data))}}&rows={{.Rows}}">Older</a>
+          <a href="/blocks?height={{.OldestHeight}}&rows={{.Rows}}">Oldest</a>
         {{end}}
       </div>
       {{end}}

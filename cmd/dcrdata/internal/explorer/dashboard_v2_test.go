@@ -52,7 +52,7 @@ func TestV2DashboardTemplateRenders(t *testing.T) {
 		"donut-wrap",                // supply/stake donuts
 		"47.3%",                     // staked percent
 		"Latest blocks",             // latest blocks section
-		"/v2/block/905142",          // block link
+		"/block/905142",             // block link
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 dashboard missing %q", want)

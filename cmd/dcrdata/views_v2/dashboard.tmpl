@@ -64,7 +64,7 @@
           <tbody>
             {{range .Blocks}}
             <tr>
-              <td><a class="height-link" href="/v2/block/{{.Height}}">{{.Height}}</a></td>
+              <td><a class="height-link" href="/block/{{.Height}}">{{.Height}}</a></td>
               <td class="hide-sm num">{{.Transactions}}</td>
               <td class="hide-sm chip" data-kind="votes">{{.Voters}}</td>
               <td class="num">{{threeSigFigs .Total}}</td>

@@ -22,7 +22,7 @@ func TestV2MempoolTemplateRenders(t *testing.T) {
 		Votes: []types.MempoolTx{{TxID: "vote111", Size: 300, TotalOut: 214.6, Time: time.Now().Unix()}},
 	}})
 	mustContain(t, out, "mempool", "class=\"sidebar\"", "Mempool", "Regular transactions",
-		"/v2/tx/abc123def", "Votes", "data-age-target")
+		"/tx/abc123def", "Votes", "data-age-target")
 }
 
 func TestV2TicketpoolTemplateRenders(t *testing.T) {

@@ -58,7 +58,7 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 		"chart-placeholder",                  // chart placeholder
 		"amt-in",                             // signed incoming amount
 		"amt-out",                            // signed outgoing amount
-		"/v2/tx/",                            // tx links to v2
+		"/tx/",                               // tx links to v2
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 address page missing %q", want)

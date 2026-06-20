@@ -689,7 +689,7 @@ func _main(ctx context.Context) error {
 	}
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
-		r.Get("/", explore.Home)
+		r.Get("/", explore.DashboardV2)
 		r.Get("/visualblocks", explore.VisualBlocks)
 	})
 	webMux.Get("/ws", explore.RootWebsocket)
@@ -755,24 +755,18 @@ func _main(ctx context.Context) error {
 		r.Get("/weeks", explore.WeekBlocksListing)
 		r.Get("/months", explore.MonthBlocksListing)
 		r.Get("/years", explore.YearBlocksListing)
-		r.Get("/blocks", explore.Blocks)
-		r.Get("/v2/dashboard", explore.DashboardV2)   // redesign preview
-		r.Get("/v2/staking", explore.StakingV2)       // redesign preview
-		r.Get("/v2/governance", explore.GovernanceV2) // redesign preview
-		r.Get("/v2/blocks", explore.BlocksV2)         // redesigned (npm-free) preview
+		r.Get("/blocks", explore.BlocksV2)
+		r.Get("/staking", explore.StakingV2)
+		r.Get("/governance", explore.GovernanceV2)
 		r.Get("/ticketpricewindows", explore.StakeDiffWindows)
 		r.Get("/side", explore.SideChains)
 		r.Get("/rejects", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/disapproved", http.StatusPermanentRedirect)
 		})
-		r.With(explore.BlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.Block)
-		r.With(explore.BlockHashPathOrIndexCtx).Get("/v2/block/{blockhash}", explore.BlockV2) // redesign preview
+		r.With(explore.BlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.BlockV2)
 		r.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.TxPage)
-		r.With(explorer.TransactionHashCtx).Get("/v2/tx/{txid}", explore.TxPage) // redesign preview
 		r.With(explorer.TransactionHashCtx, explorer.TransactionIoIndexCtx).Get("/tx/{txid}/{inout}/{inoutid}", explore.TxPage)
 		r.With(explorer.AddressPathCtx).Get("/address/{address}", explore.AddressPage)
-		r.With(explorer.AddressPathCtx).Get("/v2/address/{address}", explore.AddressPage) // redesign preview
-		r.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
 		r.Get("/proposals", explore.ProposalsPage)
 		r.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
 		r.Get("/decodetx", explore.DecodeTxPage)
@@ -784,7 +778,7 @@ func _main(ctx context.Context) error {
 		})
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
-		r.With(explorer.MenuFormParser).Post("/set", explore.Home)
+		r.With(explorer.MenuFormParser).Post("/set", explore.DashboardV2)
 		r.Get("/verify-message", explore.VerifyMessagePage)
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 
@@ -792,13 +786,11 @@ func _main(ctx context.Context) error {
 		// *explorer.explorerUI. This middleware sets ETag and Last-Modified headers that are
 		// reset if a new block or mempool change is detected.
 		withCache := r.With(explore.ETagAndLastModifiedIntercept)
-		withCache.Get("/", explore.Home)
+		withCache.Get("/", explore.DashboardV2)
 		withCache.Get("/disapproved", explore.DisapprovedBlocks)
 		withCache.Get("/mempool", explore.Mempool)
 		withCache.Get("/charts", explore.Charts)
-		withCache.Get("/v2/charts", explore.Charts) // redesign preview
 		withCache.Get("/treasury", explore.TreasuryPage)
-		withCache.Get("/treasurytable", explore.TreasuryTable)
 		withCache.Get("/parameters", explore.ParametersPage)
 		withCache.Get("/agendas", explore.AgendasPage)
 		withCache.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)

@@ -19,8 +19,8 @@
           </h1>
         </div>
         <div class="toolbar">
-          {{if .PreviousHash}}<a class="btn btn-sm" href="/v2/block/{{.PreviousHash}}">← Prev</a>{{end}}
-          {{if .NextHash}}<a class="btn btn-sm" href="/v2/block/{{.NextHash}}">Next →</a>{{end}}
+          {{if .PreviousHash}}<a class="btn btn-sm" href="/block/{{.PreviousHash}}">← Prev</a>{{end}}
+          {{if .NextHash}}<a class="btn btn-sm" href="/block/{{.NextHash}}">Next →</a>{{end}}
         </div>
       </div>
 
@@ -46,8 +46,8 @@
         <div class="summary">
           <div class="kv"><span class="k">Merkle Root</span><span class="v mono"><span class="hash"><span class="text">{{.MerkleRoot}}</span><button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.MerkleRoot}}">⧉</button></span></span></div>
           <div class="kv"><span class="k">Stake Root</span><span class="v mono"><span class="hash"><span class="text">{{.StakeRoot}}</span><button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.StakeRoot}}">⧉</button></span></span></div>
-          <div class="kv"><span class="k">Previous Block</span><span class="v mono"><a class="link hash" href="/v2/block/{{.PreviousHash}}"><span class="text">{{.PreviousHash}}</span></a></span></div>
-          <div class="kv"><span class="k">Next Block</span><span class="v mono">{{if .NextHash}}<a class="link hash" href="/v2/block/{{.NextHash}}"><span class="text">{{.NextHash}}</span></a>{{else}}—{{end}}</span></div>
+          <div class="kv"><span class="k">Previous Block</span><span class="v mono"><a class="link hash" href="/block/{{.PreviousHash}}"><span class="text">{{.PreviousHash}}</span></a></span></div>
+          <div class="kv"><span class="k">Next Block</span><span class="v mono">{{if .NextHash}}<a class="link hash" href="/block/{{.NextHash}}"><span class="text">{{.NextHash}}</span></a>{{else}}—{{end}}</span></div>
           <div class="kv"><span class="k">Nonce</span><span class="v mono">{{.Nonce}}</span></div>
           <div class="kv"><span class="k">Bits</span><span class="v mono">{{.Bits}}</span></div>
           <div class="kv"><span class="k">Stake Version</span><span class="v mono">{{.StakeVersion}}</span></div>
@@ -95,7 +95,7 @@
   <tbody>
     {{range .}}
     <tr>
-      <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+      <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
       <td class="hide-sm"><span class="tag" data-kind="regular">{{.Type}}</span></td>
       <td class="hide-sm num">{{.VinCount}}</td>
       <td class="hide-sm num">{{.VoutCount}}</td>
