@@ -87,6 +87,8 @@ func v2NavKey(path string) string {
 		return "address"
 	case strings.Contains(path, "/charts"):
 		return "charts"
+	case strings.Contains(path, "/staking"):
+		return "staking"
 	default:
 		return "dashboard"
 	}
@@ -2024,6 +2026,32 @@ func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
 		page.TreasuryDCR = float64(homeInfo.TreasuryBalance.Balance) / 1e8
 	}
 	exp.renderPage(w, exp.templatesV2, "dashboard", page)
+}
+
+// stakingPage is the data for the v2 staking page.
+type stakingPage struct {
+	*CommonPageData
+	Info       *types.HomeInfo
+	StakePct   float64
+	WindowSize int64
+}
+
+// StakingV2 renders the redesigned staking overview (v2 only).
+func (exp *explorerUI) StakingV2(w http.ResponseWriter, r *http.Request) {
+	common := exp.commonData(r)
+	exp.pageData.RLock()
+	homeInfo := exp.pageData.HomeInfo
+	exp.pageData.RUnlock()
+
+	page := &stakingPage{
+		CommonPageData: common,
+		Info:           homeInfo,
+		WindowSize:     exp.ChainParams.StakeDiffWindowSize,
+	}
+	if supplyDCR := float64(homeInfo.CoinSupply) / 1e8; supplyDCR > 0 {
+		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
+	}
+	exp.renderPage(w, exp.templatesV2, "staking", page)
 }
 
 // Charts handles the charts displays showing the various charts plotted.

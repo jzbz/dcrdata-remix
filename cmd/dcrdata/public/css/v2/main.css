@@ -380,6 +380,10 @@
   .donut { width: auto; height: 100%; max-width: 100%; display: block; margin-inline: auto; }
   @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
 
+  /* Gauge (staking pool vs target). */
+  .gauge { height: 12px; border-radius: 999px; background: var(--card-hover); overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--turquoise)); }
+
   /* Dashboard. */
   .chain-strip { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: var(--sp-5); padding: var(--sp-5) var(--sp-6); margin-bottom: var(--gap); }
   .chain-strip .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }

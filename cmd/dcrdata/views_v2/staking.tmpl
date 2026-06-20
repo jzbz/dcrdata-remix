@@ -1,0 +1,53 @@
+{{define "staking" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Staking"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head"><p class="eyebrow">Decred Mainnet · Staking</p><h1>Staking</h1></div>
+
+      {{with .Info}}
+      <div class="dash-2col">
+        <div class="card stat" style="padding:var(--sp-6)">
+          <div class="k">Ticket Price</div>
+          <div class="cs-height" data-controller="count" data-count-to-value="{{printf "%.1f" .StakeDiff}}" data-count-decimals-value="1">{{printf "%.1f" .StakeDiff}}</div>
+          <div class="sub">DCR · next ~{{printf "%.1f" .NextExpectedStakeDiff}} DCR</div>
+          <div class="sub">Window block {{.IdxBlockInWindow}} of {{$.WindowSize}}</div>
+        </div>
+        <div class="card donut-card">
+          <div class="k">Staked Supply</div>
+          <div class="donut-wrap" data-controller="chart" data-chart-kind-value="donut" data-chart-color-value="#9B8CFF" data-chart-max-value="100" data-chart-points-value="[{{printf "%.1f" $.StakePct}}]"></div>
+          <div class="donut-label">{{printf "%.1f" $.StakePct}}%</div>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-top:var(--gap)">
+        <div class="card stat"><div class="k">Ticket Reward</div><div class="v">{{printf "%.2f" .TicketReward}}%</div><div class="sub">{{.RewardPeriod}}</div></div>
+        <div class="card stat"><div class="k">Annual ROI</div><div class="v">{{printf "%.1f" .ASR}}%</div><div class="sub">stake return rate</div></div>
+        <div class="card stat"><div class="k">Pool Size</div><div class="v">{{intComma .PoolInfo.Size}}</div><div class="sub">live tickets</div></div>
+        <div class="card stat"><div class="k">Pool Value</div><div class="v">{{threeSigFigs .PoolInfo.Value}}</div><div class="sub">DCR locked</div></div>
+      </div>
+
+      <p class="section-title">Ticket pool vs target</p>
+      <div class="card" style="padding:var(--sp-5)">
+        <div class="gauge"><div class="gauge-fill" style="width:{{printf "%.1f" .PoolInfo.PercentTarget}}%"></div></div>
+        <div class="sub" style="margin-top:var(--sp-3)">{{intComma .PoolInfo.Size}} of {{intComma .PoolInfo.Target}} target tickets · {{printf "%.1f" .PoolInfo.PercentTarget}}%</div>
+      </div>
+
+      <p class="section-title">Ticket price history</p>
+      <div class="card chart-card">
+        <div class="chart-body" style="height:240px" data-controller="chart"
+             data-chart-url-value="/api/chart/ticket-price?bin=window&axis=time"
+             data-chart-ykey-value="price" data-chart-color-value="#5BA8FF"></div>
+      </div>
+      {{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
