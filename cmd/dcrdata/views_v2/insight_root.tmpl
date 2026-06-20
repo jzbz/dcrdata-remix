@@ -1,0 +1,29 @@
+{{define "insight_root" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Insight API"}}
+<body data-controller="theme clipboard">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow">Decred · Developers</p>
+        <h1>Insight API</h1>
+        <p class="text-muted" style="margin-top:var(--sp-2);max-width:720px">Looking for the Insight API? It is served under the <code class="mono">/api</code> sub-path.</p>
+      </div>
+
+      <div class="card" style="padding:var(--sp-6);max-width:720px">
+        <p class="text-muted" style="margin-bottom:var(--sp-3)">Try the status endpoint:</p>
+        <a class="hash" href="{{prefixPath .RequestURI `api/status`}}">{{prefixPath .RequestURI `api/status`}}</a>
+        <p style="margin-top:var(--sp-5)">
+          <a class="btn" href="{{.Links.InsightAPIDocs}}" target="_blank" rel="noopener">Insight API documentation ↗</a>
+        </p>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{- end}}

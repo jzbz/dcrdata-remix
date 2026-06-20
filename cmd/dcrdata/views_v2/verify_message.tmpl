@@ -1,0 +1,54 @@
+{{define "verify_message" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Verify Message"}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow">Decred · Tools</p>
+        <h1>Verify Message</h1>
+        <p class="text-muted" style="margin-top:var(--sp-2);max-width:720px">Confirm that the private key for an address was used to sign a message. Enter the address, the exact message, and its signature below.</p>
+      </div>
+
+      <div class="card" style="padding:var(--sp-6)">
+        <form class="form" action="/verify-message" method="post">
+          <div class="field">
+            <label for="addressInput">Address</label>
+            <input type="text" name="address" id="addressInput" class="mono" required autocomplete="off"
+              placeholder="Dsxxxx…" value="{{with .VerifyMessageResult}}{{.Address}}{{end}}">
+          </div>
+          <div class="field">
+            <label for="messageInput">Message</label>
+            <textarea name="message" id="messageInput" required autocomplete="off"
+              placeholder="Enter the exact message that was signed">{{with .VerifyMessageResult}}{{.Message}}{{end}}</textarea>
+          </div>
+          <div class="field">
+            <label for="signatureInput">Signature</label>
+            <textarea name="signature" id="signatureInput" class="mono" required autocomplete="off"
+              placeholder="Enter the corresponding signature">{{with .VerifyMessageResult}}{{.Signature}}{{end}}</textarea>
+          </div>
+          <div><button class="btn btn-primary" type="submit">Verify Message</button></div>
+        </form>
+
+        {{with .VerifyMessageResult -}}
+        <div style="margin-top:var(--sp-5)">
+          {{- if .Error -}}
+          <div class="alert alert-warn">Verification error: {{.Error}}</div>
+          {{- else if .Valid -}}
+          <div class="alert alert-ok">✓ Matching signature — the address signed this message.</div>
+          {{- else -}}
+          <div class="alert alert-warn">✗ Message not signed by this address.</div>
+          {{- end -}}
+        </div>
+        {{- end}}
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{- end}}

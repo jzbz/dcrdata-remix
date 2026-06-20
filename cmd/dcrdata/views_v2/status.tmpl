@@ -1,0 +1,57 @@
+{{define "status" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" (printf "Status — %s" .StatusType)}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow">Decred · {{if .StatusType.IsSyncing}}Syncing{{else}}Status{{end}}</p>
+        <h1>{{.StatusType}}</h1>
+      </div>
+
+      {{if .StatusType.IsNotFound}}
+      <div class="alert alert-warn" style="max-width:720px">
+        No matching page, block, address, or transaction could be found.
+        {{if .Message}}<div style="margin-top:var(--sp-2)">{{.Message}}</div>{{end}}
+      </div>
+
+      {{else if .StatusType.IsWrongNet}}
+      <div class="alert alert-warn" style="max-width:720px">
+        {{.Message}}
+        {{if redirectToTestnet .NetName .Message}}{{if ne .AdditionalInfo ""}}
+          <div style="margin-top:var(--sp-2)">You can <a class="link" href="{{.Links.TestnetSearch}}{{.AdditionalInfo}}">switch to testnet here</a>.</div>
+        {{end}}{{else if redirectToMainnet .NetName .Message}}{{if ne .AdditionalInfo ""}}
+          <div style="margin-top:var(--sp-2)">You can <a class="link" href="{{.Links.MainnetSearch}}{{.AdditionalInfo}}">switch to mainnet here</a>.</div>
+        {{end}}{{end}}
+      </div>
+
+      {{else if .StatusType.IsSyncing}}
+      <div class="card" style="padding:var(--sp-6);max-width:720px;display:flex;align-items:center;gap:var(--sp-4)">
+        <span class="dot syncing" style="flex:none"></span>
+        <div>
+          <div style="font-weight:600">{{if .Message}}{{.Message}}{{else}}Blockchain sync is running. Please wait.{{end}}</div>
+          <div class="text-muted" style="margin-top:var(--sp-1)">This page refreshes automatically while the explorer finishes indexing.</div>
+        </div>
+      </div>
+      <meta http-equiv="refresh" content="10">
+
+      {{else if .StatusType.IsFutureBlock}}
+      <div class="alert" style="max-width:720px">{{.Message}}</div>
+
+      {{else}}
+      <div class="alert alert-warn" style="max-width:720px">{{if .Message}}{{.Message}}{{else}}Something went wrong.{{end}}</div>
+      {{end}}
+
+      {{if .AdditionalInfo}}{{if not .StatusType.IsWrongNet}}<p class="text-muted mono" style="margin-top:var(--sp-4)">{{.AdditionalInfo}}</p>{{end}}{{end}}
+
+      <p style="margin-top:var(--sp-5)"><a class="btn" href="/">← Back to dashboard</a></p>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{- end}}

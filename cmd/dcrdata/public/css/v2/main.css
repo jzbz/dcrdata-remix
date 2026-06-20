@@ -341,6 +341,22 @@
 
   .alert { padding: var(--sp-3) var(--sp-4); border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); font-size: 14px; }
   .alert-warn { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, transparent); background: color-mix(in srgb, var(--down) 8%, transparent); }
+  .alert-ok { color: var(--turquoise); border-color: color-mix(in srgb, var(--turquoise) 40%, transparent); background: color-mix(in srgb, var(--turquoise) 8%, transparent); }
+
+  /* Forms. */
+  .form { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 720px; }
+  .field { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .field > label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 10px var(--sp-3); border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    font-size: 14px; outline: none; transition: border-color .15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--turquoise); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--dim); }
+  .field textarea { resize: vertical; min-height: 120px; }
+  .field .mono { font-family: var(--font-mono); }
+  .field-hint { font-size: 12px; color: var(--muted); }
 
   /* Pager. */
   .pager { display: flex; gap: var(--sp-1); align-items: center; justify-content: flex-end; flex-wrap: wrap; }
