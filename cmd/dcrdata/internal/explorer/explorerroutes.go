@@ -629,7 +629,7 @@ type blocksPage struct {
 
 // assembleBlocksPage fetches and builds the data for the blocks-list page. On
 // failure it writes an error response and returns ok=false.
-func (exp *explorerUI) assembleBlocksPage(w http.ResponseWriter, r *http.Request) (page *blocksPage, ok bool) {
+func (exp *explorerUI) assembleBlocksPage(w http.ResponseWriter, r *http.Request, linkBase string) (page *blocksPage, ok bool) {
 	ctx := r.Context()
 
 	bestBlockHeight, err := exp.dataSource.GetHeight(ctx)
@@ -699,7 +699,7 @@ func (exp *explorerUI) assembleBlocksPage(w http.ResponseWriter, r *http.Request
 		s.MainChain = blockStatus.IsMainchain
 	}
 
-	linkTemplate := "/blocks?height=%d&rows=" + strconv.FormatInt(rows, 10)
+	linkTemplate := linkBase + "?height=%d&rows=" + strconv.FormatInt(rows, 10)
 
 	return &blocksPage{
 		CommonPageData: exp.commonData(r),
@@ -729,14 +729,14 @@ func (exp *explorerUI) renderBlocksPage(w http.ResponseWriter, t templates, page
 }
 
 func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
-	if page, ok := exp.assembleBlocksPage(w, r); ok {
+	if page, ok := exp.assembleBlocksPage(w, r, "/blocks"); ok {
 		exp.renderBlocksPage(w, exp.templates, page)
 	}
 }
 
 // BlocksV2 renders the blocks list with the redesigned, npm-free template.
 func (exp *explorerUI) BlocksV2(w http.ResponseWriter, r *http.Request) {
-	if page, ok := exp.assembleBlocksPage(w, r); ok {
+	if page, ok := exp.assembleBlocksPage(w, r, "/v2/blocks"); ok {
 		exp.renderBlocksPage(w, exp.templatesV2, page)
 	}
 }

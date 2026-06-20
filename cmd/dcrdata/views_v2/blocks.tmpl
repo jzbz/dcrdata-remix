@@ -1,87 +1,91 @@
 {{define "blocks" -}}
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 {{template "v2-head" "Decred Blocks"}}
 <body data-controller="theme age">
-{{template "v2-navbar" "blocks"}}
+<div class="app">
+  {{template "v2-sidebar" "blocks"}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      {{$top := int64 0}}
+      {{if gt (len .Data) 0}}{{$top = (index .Data 0).Height}}{{end}}
+      {{$offset := subtract .BestBlock $top}}
 
-  <main class="container">
-    {{$top := int64 0}}
-    {{if gt (len .Data) 0}}{{$top = (index .Data 0).Height}}{{end}}
-    {{$offset := subtract .BestBlock $top}}
-    <div class="page-head">
-      <h1>Blocks</h1>
-      <div class="toolbar">
+      <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:var(--sp-3)">
+        <div>
+          <p class="eyebrow">Decred Mainnet</p>
+          <h1>Blocks</h1>
+        </div>
         {{if gt (len .Data) 0}}
-        <span class="rowcount">{{intComma (add $offset 1)}} &ndash; {{intComma (add $offset .RowsCount)}} of {{intComma (add .BestBlock 1)}} rows</span>
+        <span class="rowcount">{{intComma (add $offset 1)}} &ndash; {{intComma (add $offset .RowsCount)}} of {{intComma (add .BestBlock 1)}} blocks</span>
         {{end}}
       </div>
-    </div>
 
-    <div class="panel">
-      <div class="table-scroll">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Height</th>
-            <th class="hide-sm">Transactions</th>
-            <th class="hide-sm">Votes</th>
-            <th class="hide-sm">Tickets</th>
-            <th class="hide-sm">Revocations</th>
-            <th>DCR</th>
-            <th>Size</th>
-            <th class="hide-sm">Version</th>
-            <th>Age</th>
-            <th>Time (UTC)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .Data}}
-          <tr>
-            <td>
-              <a class="height-link" href="/block/{{.Height}}">
-                {{if not .Valid}}<span class="warn" title="Invalidated by stakeholders">⚠ </span>{{end}}{{.Height}}
-              </a>
-            </td>
-            <td class="hide-sm num{{if not .Valid}} muted{{end}}">{{.Transactions}}</td>
-            <td class="hide-sm chip" data-kind="votes">{{.Voters}}</td>
-            <td class="hide-sm chip" data-kind="tickets">{{.FreshStake}}</td>
-            <td class="hide-sm chip" data-kind="revoke">{{.Revocations}}</td>
-            <td class="num">{{threeSigFigs .Total}}</td>
-            <td class="num">{{.FormattedBytes}}</td>
-            <td class="hide-sm num">{{.Version}}</td>
-            <td class="num text-muted" data-age-target="age" data-age="{{.BlockTime.UNIX}}"></td>
-            <td class="mono">{{.BlockTime.DatetimeWithoutTZ}}</td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
+      <div class="panel">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Height</th>
+              <th class="hide-sm">Transactions</th>
+              <th class="hide-sm">Votes</th>
+              <th class="hide-sm">Tickets</th>
+              <th class="hide-sm">Revocations</th>
+              <th>DCR</th>
+              <th>Size</th>
+              <th class="hide-sm">Version</th>
+              <th>Age</th>
+              <th>Time (UTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Data}}
+            <tr>
+              <td>
+                <a class="height-link" href="/block/{{.Height}}">
+                  {{if not .Valid}}<span class="warn" title="Invalidated by stakeholders">⚠ </span>{{end}}{{.Height}}
+                </a>
+              </td>
+              <td class="hide-sm num{{if not .Valid}} muted{{end}}">{{.Transactions}}</td>
+              <td class="hide-sm chip" data-kind="votes">{{.Voters}}</td>
+              <td class="hide-sm chip" data-kind="tickets">{{.FreshStake}}</td>
+              <td class="hide-sm chip" data-kind="revoke">{{.Revocations}}</td>
+              <td class="num">{{threeSigFigs .Total}}</td>
+              <td class="num">{{.FormattedBytes}}</td>
+              <td class="hide-sm num">{{.Version}}</td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.BlockTime.UNIX}}"></td>
+              <td class="mono">{{.BlockTime.DatetimeWithoutTZ}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        </div>
       </div>
-    </div>
 
-    {{if len .Pages}}
-    <div class="pager" style="margin-top: var(--sp-4)">
-      {{if lt $top .BestBlock}}
-        <a href="/blocks?height={{.BestBlock}}&rows={{.Rows}}">Newest</a>
-        <a href="/blocks?height={{add $top (int64 (len .Data))}}&rows={{.Rows}}">Newer</a>
+      {{if len .Pages}}
+      <div class="pager" style="margin-top: var(--sp-4)">
+        {{if lt $top .BestBlock}}
+          <a href="/v2/blocks?height={{.BestBlock}}&rows={{.Rows}}">Newest</a>
+          <a href="/v2/blocks?height={{add $top (int64 (len .Data))}}&rows={{.Rows}}">Newer</a>
+        {{end}}
+        {{range .Pages}}
+          {{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}
+        {{end}}
+        {{if ge $top .Rows}}
+          <a href="/v2/blocks?height={{subtract $top (int64 (len .Data))}}&rows={{.Rows}}">Older</a>
+          <a href="/v2/blocks?height={{.OldestHeight}}&rows={{.Rows}}">Oldest</a>
+        {{end}}
+      </div>
       {{end}}
-      {{range .Pages}}
-        {{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}
-      {{end}}
-      {{if ge $top .Rows}}
-        <a href="/blocks?height={{subtract $top (int64 (len .Data))}}&rows={{.Rows}}">Older</a>
-        <a href="/blocks?height={{.OldestHeight}}&rows={{.Rows}}">Oldest</a>
-      {{end}}
-    </div>
-    {{end}}
 
-    <p class="center text-muted" style="margin-top: var(--sp-5)">
-      Looking for <a class="link" href="/side">orphaned blocks</a> or
-      <a class="link" href="/disapproved">PoS invalidated blocks</a>?
-    </p>
-  </main>
-
-{{template "v2-footer" .}}
+      <p class="center text-muted" style="margin-top: var(--sp-5)">
+        Looking for <a class="link" href="/side">orphaned blocks</a> or
+        <a class="link" href="/disapproved">PoS invalidated blocks</a>?
+      </p>
+    </main>
+  </div>
+</div>
 </body>
 </html>
 {{end}}

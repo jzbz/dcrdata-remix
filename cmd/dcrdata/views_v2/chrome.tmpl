@@ -1,11 +1,12 @@
 {{/*
-  Shared chrome for the v2 (npm-free) pages: the document head, the top nav, and
-  the footer. Each page provides its own <!DOCTYPE>/<html>/<body> so it can set
-  the body's data-controller list, and pulls in these partials:
+  Shared chrome for the v2 (npm-free) pages: the document head, the fixed glass
+  sidebar, and the sticky topbar. Each page supplies its own
+  <!DOCTYPE>/<html>/<body> (so it can set the body's data-controller list) and a
+  .main column, then pulls in these partials:
 
     {{template "v2-head" "Page Title"}}   - argument is the <title> text
-    {{template "v2-navbar" "blocks"}}     - argument is the active nav key
-    {{template "v2-footer" .}}            - argument is ignored
+    {{template "v2-sidebar" "blocks"}}    - argument is the active nav key
+    {{template "v2-topbar" .}}            - argument is the page data (search etc.)
 */}}
 
 {{define "v2-head"}}
@@ -14,17 +15,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.}}</title>
 
-  {{/* Apply the saved/system theme before paint to avoid a flash. */}}
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('theme') ||
-          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        document.documentElement.dataset.theme = t
-      } catch (e) { document.documentElement.dataset.theme = 'light' }
-    })()
-  </script>
-
+  {{/* Dark-by-default; the theme toggle is wired in a later pass. */}}
+  <link rel="stylesheet" href="{{asset "css/v2/fonts.css"}}">
   <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
 
   {{/* Resolve the bare specifier to the vendored ESM build — no bundler. */}}
@@ -35,33 +27,64 @@
 </head>
 {{end}}
 
-{{define "v2-navbar"}}
-<header class="site-header">
-  <div class="container">
-    <a class="brand" href="/">
-      <span class="mark">d</span>
-      <span>dcrdata</span>
+{{define "v2-sidebar"}}
+<aside class="sidebar">
+  <a class="brand" href="/v2/blocks">
+    <span class="mark">d</span>
+    <span>
+      <span class="name">dcrdata</span><br>
+      <span class="sub">Block Explorer</span>
+    </span>
+  </a>
+
+  <nav class="nav">
+    <a href="/v2/blocks" class="{{if eq . "dashboard"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Dashboard
     </a>
-    <nav class="nav">
-      <a href="/" class="label{{if eq . "home"}} active{{end}}">Home</a>
-      <a href="/v2/blocks" class="label{{if eq . "blocks"}} active{{end}}">Blocks</a>
-      <a href="/mempool" class="label{{if eq . "mempool"}} active{{end}}">Mempool</a>
-      <a href="/charts" class="label{{if eq . "charts"}} active{{end}}">Charts</a>
-      <a href="/market" class="label{{if eq . "market"}} active{{end}}">Market</a>
-      <button class="icon-btn" type="button"
-              data-action="theme#toggle"
-              data-theme-target="glyph"
-              aria-label="Toggle dark mode">☾</button>
-    </nav>
+    <a href="/v2/blocks" class="{{if eq . "blocks"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5M12 11v9"/></svg>
+      Blocks
+    </a>
+    <a href="/v2/blocks" class="{{if eq . "transactions"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+      Transactions
+    </a>
+    <a href="/v2/blocks" class="{{if eq . "charts"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="m7 14 3-4 3 3 4-6"/></svg>
+      Charts
+    </a>
+    <a href="/v2/blocks" class="{{if eq . "staking"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z"/><path d="M12 7v10"/></svg>
+      Staking
+    </a>
+    <a href="/v2/blocks" class="{{if eq . "address"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.5 17c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5M15 9h4M15 13h3"/></svg>
+      Address
+    </a>
+    <a href="/v2/blocks" class="{{if eq . "governance"}}active{{end}}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4 3 7 7 8 4-1 7-4 7-8V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      Governance
+    </a>
+  </nav>
+
+  {{/* TODO(data-wiring): bind network/sync/peers/version to live values. */}}
+  <div class="node-status">
+    <div class="head"><span class="dot"></span> Mainnet · Synced</div>
+    <div class="row"><span>Peers</span><span class="v">—</span></div>
+    <div class="row"><span>Node</span><span class="v">—</span></div>
   </div>
-</header>
+</aside>
 {{end}}
 
-{{define "v2-footer"}}
-<footer class="site-footer">
-  <div class="container">
-    <span>dcrdata — Decred block explorer</span>
-    <span class="mono">v2 preview</span>
-  </div>
-</footer>
+{{define "v2-topbar"}}
+<div class="topbar">
+  <form class="search" action="/search" method="get" role="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input name="search" placeholder="Search blocks, transactions, addresses…" autocomplete="off" spellcheck="false">
+  </form>
+  <div class="spacer"></div>
+  {{/* TODO(data-wiring): live DCR price + 24h delta. */}}
+  <button class="icon-btn" type="button" data-action="theme#toggle" data-theme-target="glyph" aria-label="Toggle theme">☾</button>
+</div>
 {{end}}

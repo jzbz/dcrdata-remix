@@ -61,7 +61,9 @@ func TestV2BlocksTemplateRenders(t *testing.T) {
 		"905142",              // a real block height rendered
 		"/block/905142",       // height links to the block page
 		"⚠",                   // invalid-block marker (905141)
-		"of 905,143 rows",     // rowcount via intComma/add helpers
+		"of 905,143 blocks",   // rowcount via intComma/add helpers
+		"class=\"sidebar\"",   // sidebar shell rendered
+		"css/v2/fonts.css",    // self-hosted fonts linked
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 blocks page missing %q", want)
