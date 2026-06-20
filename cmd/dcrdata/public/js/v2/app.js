@@ -12,6 +12,7 @@ import ChartController from './controllers/chart_controller.js'
 import CountController from './controllers/count_controller.js'
 import RawtxController from './controllers/rawtx_controller.js'
 import AttackcostController from './controllers/attackcost_controller.js'
+import MarketController from './controllers/market_controller.js'
 
 const app = Application.start()
 app.register('theme', ThemeController)
@@ -21,5 +22,6 @@ app.register('chart', ChartController)
 app.register('count', CountController)
 app.register('rawtx', RawtxController)
 app.register('attackcost', AttackcostController)
+app.register('market', MarketController)
 
 window.dcrdata = { app }

@@ -411,6 +411,20 @@
   .vtrack-label { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--dim); margin-top: var(--sp-3); }
   .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 
+  /* Market. */
+  .price-hero { display: flex; align-items: baseline; gap: var(--sp-2); }
+  .price-hero .lead { color: var(--text-2); font-size: 15px; }
+  .price-hero .big { font-family: var(--font-mono); font-size: 30px; font-weight: 700; color: var(--turquoise); }
+  .price-hero .idx { color: var(--muted); font-size: 14px; }
+  .bin-group { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-sm); background: var(--card); border: 1px solid var(--border); }
+  .bin-group button { padding: 4px var(--sp-3); border: 0; border-radius: 7px; background: none; color: var(--text-2); font-size: 13px; cursor: pointer; }
+  .bin-group button:hover { color: var(--text); }
+  .bin-group button.active { background: var(--turquoise); color: #05221a; font-weight: 700; }
+  .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--gap); }
+  .idx-cell { text-align: center; }
+  .idx-cell .name { font-size: 13px; color: var(--text-2); }
+  .idx-cell .val { font-family: var(--font-mono); font-size: 20px; margin-top: 2px; }
+
   /* Pager. */
   .pager { display: flex; gap: var(--sp-1); align-items: center; justify-content: flex-end; flex-wrap: wrap; }
   .pager a, .pager span { min-width: 32px; height: 32px; display: inline-grid; place-items: center; padding-inline: var(--sp-2); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-2); }

@@ -1,0 +1,88 @@
+{{define "market" -}}
+{{- $botState := .XcState -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Market Data"}}
+<body data-controller="theme market">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow">Decred · Markets</p>
+        <h1>Market Data</h1>
+      </div>
+
+      {{if $botState}}
+      {{- /* PRICE + CHART */ -}}
+      <div class="card" style="padding:var(--sp-5)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--sp-3)">
+          <div class="price-hero">
+            <span class="lead">1 DCR =</span>
+            <span class="big">{{if eq $botState.Index "USD"}}${{end}}{{printf "%.2f" $botState.Price}}</span>
+            <span class="idx">{{$botState.Index}}</span>
+          </div>
+          <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap">
+            <select class="num-input" data-market-target="exchange" data-action="change->market#changeExchange">
+              {{range $botState.VolumeOrderedExchanges}}{{if .State.Candlesticks}}
+              <option value="{{.Token}}" data-pair="{{.CurrencyPair}}" data-bins="{{range $b, $_ := .State.Candlesticks}}{{$b}};{{end}}">{{xcDisplayName .Token}} ({{.CurrencyPair}})</option>
+              {{end}}{{end}}
+            </select>
+            <div class="bin-group" data-market-target="bin"></div>
+          </div>
+        </div>
+        <p class="vtrack-label" style="justify-content:flex-start;margin-top:var(--sp-3)"><span data-market-target="meta"></span></p>
+        <div class="chart" data-market-target="chart" style="height:300px;margin-top:var(--sp-2)"><div class="chart-empty">loading…</div></div>
+      </div>
+
+      {{- /* DECRED MARKETS TABLE */ -}}
+      <p class="section-title">Decred markets</p>
+      <div class="panel"><div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Exchange</th><th class="num">DCR Volume</th><th class="num">Price</th><th></th><th class="num">{{$botState.Index}}</th></tr></thead>
+          <tbody>
+            {{range $botState.VolumeOrderedExchanges}}
+            <tr>
+              <td>{{xcDisplayName .Token}} <span class="text-muted">({{.CurrencyPair.QuoteAsset}})</span></td>
+              <td class="num">{{threeSigFigs .State.Volume}}</td>
+              <td class="num mono">{{threeSigFigs .State.Price}}</td>
+              <td class="num">{{if gt .State.Change 0.0}}<span class="amt-in">&#9650;</span>{{else if lt .State.Change 0.0}}<span class="amt-out">&#9660;</span>{{end}}</td>
+              <td class="num mono">{{printf "%.2f" ($botState.PriceToFiat .State.Price .CurrencyPair)}}</td>
+            </tr>
+            {{end}}
+            <tr style="border-top:2px solid var(--border)">
+              <td class="fw">Aggregate</td>
+              <td class="num">{{threeSigFigs $botState.Volume}}</td>
+              <td class="num mono">{{threeSigFigs ($botState.FiatToBtc $botState.Price)}}</td>
+              <td></td>
+              <td class="num mono">{{printf "%.2f" $botState.Price}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div></div>
+
+      {{- /* BITCOIN INDICES */ -}}
+      {{if $botState.BitcoinIndices}}
+      <p class="section-title">Bitcoin indices</p>
+      <div class="card" style="padding:var(--sp-5)">
+        <div class="idx-grid">
+          {{range $token, $state := $botState.BitcoinIndices}}
+          <div class="idx-cell">
+            <div class="name">{{toTitleCase $token}}</div>
+            <div class="val">{{if eq $botState.Index "USD"}}${{end}}{{commaWithDecimal $state.Price 2}} <span class="text-muted" style="font-size:13px">{{$botState.Index}}</span></div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
+      {{else}}
+      <div class="alert">Exchange monitoring is disabled on this dcrdata instance, so live market data is unavailable.</div>
+      {{end}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{- end}}

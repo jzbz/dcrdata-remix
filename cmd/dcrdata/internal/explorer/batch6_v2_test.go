@@ -8,6 +8,7 @@ import (
 	"time"
 
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
+	exchanges "github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/v8/explorer/types"
 )
 
@@ -105,4 +106,50 @@ func TestV2VisualBlocksRenders(t *testing.T) {
 		"cell rev",                // revocation cell
 		"data-age-target=\"age\"", // age controller wired
 	)
+}
+
+func tdXcState() *exchanges.ExchangeBotState {
+	xs := func(price, vol, change float64) *exchanges.ExchangeState {
+		return &exchanges.ExchangeState{BaseState: exchanges.BaseState{Price: price, Volume: vol, Change: change}}
+	}
+	return &exchanges.ExchangeBotState{
+		Index: "USD", Price: 18.42, Volume: 42000, BtcPrice: 64000,
+		DCRExchanges: map[string]map[exchanges.CurrencyPair]*exchanges.ExchangeState{
+			exchanges.Binance:  {exchanges.CurrencyPairDCRUSDT: xs(18.40, 30000, 0.6)},
+			exchanges.Coinbase: {exchanges.CurrencyPairDCRBTC: xs(0.00029, 12000, -0.3)},
+		},
+		FiatIndices: map[string]map[exchanges.CurrencyPair]*exchanges.ExchangeState{
+			"bittrex": {
+				exchanges.BTCIndex:  xs(64000, 0, 0),
+				exchanges.USDTIndex: xs(1.0, 0, 0),
+			},
+		},
+	}
+}
+
+func TestV2MarketRenders(t *testing.T) {
+	out := renderV2(t, "market", struct {
+		*CommonPageData
+		XcState *exchanges.ExchangeBotState
+	}{tdCommon(), tdXcState()})
+	mustContain(t, out, "market",
+		"class=\"sidebar\"",
+		"data-controller=\"theme market\"",
+		"Market Data",
+		"1 DCR =",
+		"$18.42",                          // aggregate price
+		"data-market-target=\"exchange\"", // chart exchange picker
+		"data-market-target=\"chart\"",    // chart container
+		"Decred markets",                  // comparison table
+		"Aggregate",                       // aggregate row
+		"Bitcoin indices",                 // indices section
+	)
+}
+
+func TestV2MarketDisabled(t *testing.T) {
+	out := renderV2(t, "market", struct {
+		*CommonPageData
+		XcState *exchanges.ExchangeBotState
+	}{tdCommon(), nil})
+	mustContain(t, out, "market", "Exchange monitoring is disabled")
 }
