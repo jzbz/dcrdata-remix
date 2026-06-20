@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sync"
@@ -208,15 +209,20 @@ type pageData struct {
 }
 
 type explorerUI struct {
-	Mux              *chi.Mux
-	dataSource       explorerDataSource
-	chartSource      ChartDataSource
-	agendasSource    agendaBackend
-	voteTracker      *agendas.VoteTracker
-	proposals        PoliteiaBackend
-	dbsSyncing       atomic.Value
-	devPrefetch      bool
-	templates        templates
+	Mux           *chi.Mux
+	dataSource    explorerDataSource
+	chartSource   ChartDataSource
+	agendasSource agendaBackend
+	voteTracker   *agendas.VoteTracker
+	proposals     PoliteiaBackend
+	dbsSyncing    atomic.Value
+	devPrefetch   bool
+	templates     templates
+	// templatesV2 holds the redesigned, npm-free pages (bare CSS + native ESM)
+	// loaded from the views_v2 folder. They are served in parallel with the
+	// legacy templates during the migration off webpack.
+	templatesV2      templates
+	assets           *AssetManager
 	wsHub            *WebsocketHub
 	pageData         *pageData
 	ChainParams      *chaincfg.Params
@@ -367,8 +373,17 @@ func New(cfg *ExplorerConfig) *explorerUI {
 
 	log.Infof("Mean Voting Blocks calculated: %d", exp.pageData.HomeInfo.Params.MeanVotingBlocks)
 
+	// Static assets (public/) and the redesigned views (views_v2/) sit beside
+	// the legacy views folder. Derive their paths from it so a custom
+	// Viewsfolder keeps working.
+	baseDir := filepath.Dir(cfg.Viewsfolder)
+	exp.assets = NewAssetManager(filepath.Join(baseDir, "public"))
+	v2Folder := filepath.Join(baseDir, "views_v2")
+
+	funcMap := makeTemplateFuncMap(exp.ChainParams, exp.assets)
+
 	commonTemplates := []string{"extras"}
-	exp.templates = newTemplates(cfg.Viewsfolder, cfg.ReloadHTML, commonTemplates, makeTemplateFuncMap(exp.ChainParams))
+	exp.templates = newTemplates(cfg.Viewsfolder, cfg.ReloadHTML, commonTemplates, funcMap)
 
 	tmpls := []string{"home", "blocks", "mempool", "block", "tx", "address",
 		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
@@ -379,6 +394,15 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
 			log.Errorf("Unable to create new html template: %v", err)
+			return nil
+		}
+	}
+
+	// Redesigned (npm-free) pages. Self-contained, so no common templates.
+	exp.templatesV2 = newTemplates(v2Folder, cfg.ReloadHTML, nil, funcMap)
+	for _, name := range []string{"blocks"} {
+		if err := exp.templatesV2.addTemplate(name); err != nil {
+			log.Errorf("Unable to create v2 html template %q: %v", name, err)
 			return nil
 		}
 	}

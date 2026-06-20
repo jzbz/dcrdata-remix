@@ -5,7 +5,7 @@ import (
 )
 
 func TestBlockVoteBitsStr(t *testing.T) {
-	funcs := makeTemplateFuncMap(nil)
+	funcs := makeTemplateFuncMap(nil, nil)
 
 	blockVoteBitsStr, ok := funcs["blockVoteBitsStr"]
 	if !ok {
@@ -37,7 +37,7 @@ func TestBlockVoteBitsStr(t *testing.T) {
 }
 
 func TestPrefixPath(t *testing.T) {
-	funcs := makeTemplateFuncMap(nil)
+	funcs := makeTemplateFuncMap(nil, nil)
 
 	prefixPath, ok := funcs["prefixPath"]
 	if !ok {
@@ -84,7 +84,7 @@ func TestPrefixPath(t *testing.T) {
 }
 
 func TestHashStart(t *testing.T) {
-	funcs := makeTemplateFuncMap(nil)
+	funcs := makeTemplateFuncMap(nil, nil)
 
 	hashStart, ok := funcs["hashStart"]
 	if !ok {
@@ -118,7 +118,7 @@ func TestHashStart(t *testing.T) {
 }
 
 func TestHashEnd(t *testing.T) {
-	funcs := makeTemplateFuncMap(nil)
+	funcs := makeTemplateFuncMap(nil, nil)
 
 	hashEnd, ok := funcs["hashEnd"]
 	if !ok {
@@ -152,7 +152,7 @@ func TestHashEnd(t *testing.T) {
 }
 
 func TestHashStartEnd(t *testing.T) {
-	funcs := makeTemplateFuncMap(nil)
+	funcs := makeTemplateFuncMap(nil, nil)
 
 	hashStart, ok := funcs["hashStart"]
 	if !ok {

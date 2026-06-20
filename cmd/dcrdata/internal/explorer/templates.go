@@ -325,12 +325,15 @@ func formattedDuration(duration time.Duration, str *periodMap) string {
 	return i(durationsec) + pl(str.s, durationsec)
 }
 
-func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
+func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template.FuncMap {
 	netTheme := "theme-" + strings.ToLower(netName(params))
 	netName := netName(params)
 	notMainnet := netName != "Mainnet"
 
 	return template.FuncMap{
+		// asset returns a content-hashed URL for a static file (no-build
+		// cache-busting). See AssetManager.
+		"asset": assets.URL,
 		"blockVoteBitsStr": func(voteBits uint16) string {
 			if voteBits&1 == 0 {
 				return "disapprove"

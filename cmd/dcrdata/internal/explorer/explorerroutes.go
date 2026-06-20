@@ -613,7 +613,23 @@ func (exp *explorerUI) timeBasedBlocksListing(val string, w http.ResponseWriter,
 }
 
 // Blocks is the page handler for the "/blocks" path.
-func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
+// blocksPage is the data passed to the blocks-list template (both the legacy
+// and the v2 redesign render from this same struct).
+type blocksPage struct {
+	*CommonPageData
+	Data         []*types.BlockBasic
+	BestBlock    int64
+	OldestHeight int64
+	Rows         int64
+	RowsCount    int64
+	WindowSize   int64
+	TimeGrouping string
+	Pages        pageNumbers
+}
+
+// assembleBlocksPage fetches and builds the data for the blocks-list page. On
+// failure it writes an error response and returns ok=false.
+func (exp *explorerUI) assembleBlocksPage(w http.ResponseWriter, r *http.Request) (page *blocksPage, ok bool) {
 	ctx := r.Context()
 
 	bestBlockHeight, err := exp.dataSource.GetHeight(ctx)
@@ -621,7 +637,7 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("GetHeight failed: %v", err)
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
 			ExpStatusError)
-		return
+		return nil, false
 	}
 
 	var height int64
@@ -629,7 +645,7 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		h, err := strconv.ParseUint(heightStr, 10, 64)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
+			return nil, false
 		}
 		height = int64(h)
 	} else {
@@ -641,7 +657,7 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		h, err := strconv.ParseUint(rowsStr, 10, 64)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
+			return nil, false
 		}
 		rows = int64(h)
 	}
@@ -667,13 +683,13 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Unable to get blocks: height=%d&rows=%d", height, rows)
 		exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
 			ExpStatusNotFound)
-		return
+		return nil, false
 	}
 
 	for _, s := range summaries {
 		blockStatus, err := exp.dataSource.BlockStatus(ctx, s.Hash)
 		if exp.timeoutErrorPage(w, err, "BlockStatus") {
-			return
+			return nil, false
 		}
 		if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 			log.Warnf("Unable to retrieve chain status for block %s: %v",
@@ -685,30 +701,23 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 
 	linkTemplate := "/blocks?height=%d&rows=" + strconv.FormatInt(rows, 10)
 
-	oldestHeight := bestBlockHeight % rows
-
-	str, err := exp.templates.exec("blocks", struct {
-		*CommonPageData
-		Data         []*types.BlockBasic
-		BestBlock    int64
-		OldestHeight int64
-		Rows         int64
-		RowsCount    int64
-		WindowSize   int64
-		TimeGrouping string
-		Pages        pageNumbers
-	}{
+	return &blocksPage{
 		CommonPageData: exp.commonData(r),
 		Data:           summaries,
 		BestBlock:      bestBlockHeight,
-		OldestHeight:   oldestHeight,
+		OldestHeight:   bestBlockHeight % rows,
 		Rows:           rows,
 		RowsCount:      int64(len(summaries)),
 		WindowSize:     exp.ChainParams.StakeDiffWindowSize,
 		TimeGrouping:   "Blocks",
 		Pages:          calcPagesDesc(int(bestBlockHeight), int(rows), int(height), linkTemplate),
-	})
+	}, true
+}
 
+// renderBlocksPage executes the "blocks" template from the given set with the
+// assembled page data and writes the response.
+func (exp *explorerUI) renderBlocksPage(w http.ResponseWriter, t templates, page *blocksPage) {
+	str, err := t.exec("blocks", page)
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
@@ -717,6 +726,19 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
+}
+
+func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
+	if page, ok := exp.assembleBlocksPage(w, r); ok {
+		exp.renderBlocksPage(w, exp.templates, page)
+	}
+}
+
+// BlocksV2 renders the blocks list with the redesigned, npm-free template.
+func (exp *explorerUI) BlocksV2(w http.ResponseWriter, r *http.Request) {
+	if page, ok := exp.assembleBlocksPage(w, r); ok {
+		exp.renderBlocksPage(w, exp.templatesV2, page)
+	}
 }
 
 // Block is the page handler for the "/block" path.
