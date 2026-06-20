@@ -274,6 +274,17 @@
   .data-table .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .data-table .muted { color: var(--dim); }
 
+  /* Signed amounts in the address history. */
+  .amt-in { color: var(--turquoise); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .amt-out { color: var(--down); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* Placeholder where a chart will render in the charts/motion phase. */
+  .chart-placeholder {
+    height: 180px; border-radius: var(--radius-sm);
+    background: repeating-linear-gradient(135deg, var(--border-subtle) 0 1px, transparent 1px 12px);
+    display: grid; place-items: center; color: var(--dim); font-size: 13px;
+  }
+
   .chip { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .chip[data-kind="votes"]   { color: var(--turquoise); }
   .chip[data-kind="tickets"] { color: var(--violet); }

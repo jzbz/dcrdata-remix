@@ -768,6 +768,7 @@ func _main(ctx context.Context) error {
 		r.With(explorer.TransactionHashCtx).Get("/v2/tx/{txid}", explore.TxPage) // redesign preview
 		r.With(explorer.TransactionHashCtx, explorer.TransactionIoIndexCtx).Get("/tx/{txid}/{inout}/{inoutid}", explore.TxPage)
 		r.With(explorer.AddressPathCtx).Get("/address/{address}", explore.AddressPage)
+		r.With(explorer.AddressPathCtx).Get("/v2/address/{address}", explore.AddressPage) // redesign preview
 		r.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
 		r.Get("/proposals", explore.ProposalsPage)
 		r.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)

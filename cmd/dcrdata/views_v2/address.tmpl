@@ -1,0 +1,81 @@
+{{define "address" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" "Address"}}
+<body data-controller="theme clipboard age">
+<div class="app">
+  {{template "v2-sidebar" "address"}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      {{with .Data}}
+      <div class="page-head">
+        <p class="eyebrow">Decred Mainnet · Address</p>
+        <h1 style="font-size:24px">Address</h1>
+        <div class="hash" style="margin-top:var(--sp-2); color:var(--text-2)">
+          <span class="text">{{.Address}}</span>
+          <button class="copy" data-action="clipboard#copy" data-clipboard-text="{{.Address}}" title="Copy address">⧉</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat"><div class="k">Balance</div><div class="v">{{threeSigFigs .AmountUnspent.ToCoin}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Received</div><div class="v">{{threeSigFigs .AmountReceived.ToCoin}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Sent</div><div class="v">{{threeSigFigs .AmountSent.ToCoin}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Transactions</div><div class="v">{{intComma .TxnCount}}</div></div>
+        {{if .Balance}}<div class="card stat"><div class="k">Unspent Outputs</div><div class="v">{{intComma .Balance.NumUnspent}}</div></div>{{end}}
+      </div>
+
+      <p class="section-title">Balance over time</p>
+      <div class="panel" style="padding:var(--sp-5)">
+        <div class="chart-placeholder">balance-over-time chart — coming in the charts phase</div>
+      </div>
+
+      <p class="section-title">Transaction history</p>
+      {{if .Transactions}}
+      <div class="panel">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Transaction</th>
+              <th class="hide-sm">Type</th>
+              <th>Amount</th>
+              <th class="hide-sm">Confirmations</th>
+              <th>Age</th>
+              <th>Time (UTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Transactions}}
+            <tr>
+              <td><a class="height-link" href="/v2/tx/{{.TxID}}">{{.TxID}}</a></td>
+              <td class="hide-sm"><span class="tag" data-kind="regular">{{.TxType}}</span></td>
+              <td class="num">{{if .IsFunding}}<span class="amt-in">+{{threeSigFigs .ReceivedTotal}}</span>{{else}}<span class="amt-out">&minus;{{threeSigFigs .SentTotal}}</span>{{end}}</td>
+              <td class="hide-sm num">{{.Confirmations}}</td>
+              <td class="num text-muted" data-age-target="age" data-age="{{.Time.UNIX}}"></td>
+              <td class="mono">{{.Time.DatetimeWithoutTZ}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        </div>
+      </div>
+      {{else}}
+      <div class="alert">No transactions found for this address.</div>
+      {{end}}
+
+      {{if len $.Pages}}
+      <div class="pager" style="margin-top: var(--sp-4)">
+        {{range $.Pages}}
+          {{if eq .Link ""}}<span>{{.Str}}</span>{{else}}<a href="{{.Link}}"{{if .Active}} class="active"{{end}}>{{.Str}}</a>{{end}}
+        {{end}}
+      </div>
+      {{end}}
+      {{end}}{{/* with .Data */}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

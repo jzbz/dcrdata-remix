@@ -1574,18 +1574,18 @@ func (exp *explorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddressPage is the page handler for the "/address" path.
+// addressPage is the data passed to the address template (legacy and v2).
+type addressPage struct {
+	*CommonPageData
+	Data         *dbtypes.AddressInfo
+	Type         txhelpers.AddressType
+	CRLFDownload bool
+	FiatBalance  *exchanges.Conversion
+	Pages        []pageNumber
+}
+
 func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	// AddressPageData is the data structure passed to the HTML template
-	type AddressPageData struct {
-		*CommonPageData
-		Data         *dbtypes.AddressInfo
-		Type         txhelpers.AddressType
-		CRLFDownload bool
-		FiatBalance  *exchanges.Conversion
-		Pages        []pageNumber
-	}
 
 	// Grab the URL query parameters
 	address, txnType, limitN, offsetAddrOuts, err := parseAddressParams(r)
@@ -1667,16 +1667,27 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 		limitN = 20
 	}
 
-	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
+	addrBase := "/address/"
+	if strings.HasPrefix(r.URL.Path, "/v2/") {
+		addrBase = "/v2/address/"
+	}
+	linkTemplate := fmt.Sprintf(addrBase+"%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
 
 	// Execute the HTML template.
-	pageData := AddressPageData{
+	pageData := &addressPage{
 		CommonPageData: exp.commonData(r),
 		Data:           addrData,
 		CRLFDownload:   UseCRLF,
 		FiatBalance:    conversion,
 		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
 	}
+
+	// The redesigned (npm-free) page is served under /v2 by the same handler.
+	if strings.HasPrefix(r.URL.Path, "/v2/") {
+		exp.renderPage(w, exp.templatesV2, "address", pageData)
+		return
+	}
+
 	str, err := exp.templates.exec("address", pageData)
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
