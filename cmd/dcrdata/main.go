@@ -466,7 +466,17 @@ func _main(ctx context.Context) error {
 		tracker, err = agendas.NewVoteTracker(activeChain, dcrdClient,
 			chainDB.AgendaVoteCounts)
 		if err != nil {
-			return fmt.Errorf("Unable to initialize vote tracker: %v", err)
+			// This commonly fails on a fresh deploy when dcrd has not synced
+			// enough blocks yet (the tracker needs ~1000). Rather than make
+			// dcrdata crash-loop until dcrd catches up, proceed with a nil
+			// tracker — a supported sentinel (as on simnet): dcrdata serves its
+			// syncing page and indexes alongside dcrd, and the agendas page
+			// reports as unavailable. Restart dcrdata once dcrd is synced to
+			// enable agenda vote tracking.
+			log.Warnf("Vote tracker unavailable (is dcrd still syncing?): %v; "+
+				"continuing without it — restart dcrdata once dcrd is synced to "+
+				"enable agenda vote tracking", err)
+			tracker = nil
 		}
 	}
 
