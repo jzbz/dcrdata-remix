@@ -1,21 +1,26 @@
-FROM golang:1.25 as daemon
+# dcrdata explorer image.
+#
+# The front end is plain CSS + native ES modules (no Node.js/npm/bundler), so
+# there is nothing to build for the UI — the assets in cmd/dcrdata/public are
+# served as-is. We just build the Go binary and copy it alongside the templates
+# (views_v2/) and static assets (public/), which dcrdata serves relative to its
+# working directory.
 
+FROM golang:1.23-bookworm AS build
 COPY . /go/src
 WORKDIR /go/src/cmd/dcrdata
-RUN go build -v
+RUN GOTOOLCHAIN=local go build -buildvcs=false -o /dcrdata .
 
-FROM node:lts as gui
+FROM debian:bookworm-slim
+# ca-certificates is needed for outbound HTTPS (exchange and Politeia APIs).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /root
-COPY ./cmd/dcrdata /root
-RUN npm install
-RUN npm run build
-
-FROM golang:1.25
-WORKDIR /
-COPY --from=daemon /go/src/cmd/dcrdata/dcrdata /dcrdata
-COPY --from=daemon /go/src/cmd/dcrdata/views /views
-COPY --from=gui /root/public /public
+WORKDIR /app
+COPY --from=build /dcrdata                      /app/dcrdata
+COPY --from=build /go/src/cmd/dcrdata/views_v2  /app/views_v2
+COPY --from=build /go/src/cmd/dcrdata/public    /app/public
 
 EXPOSE 7777
-CMD [ "/dcrdata" ]
+ENTRYPOINT ["/app/dcrdata"]

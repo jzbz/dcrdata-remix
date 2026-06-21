@@ -81,7 +81,7 @@ func v2NavKey(path string) string {
 	switch {
 	case strings.Contains(path, "/block"): // /v2/block, /v2/blocks
 		return "blocks"
-	case strings.Contains(path, "/tx"):
+	case strings.Contains(path, "/tx"), strings.Contains(path, "/mempool"):
 		return "transactions"
 	case strings.Contains(path, "/address"):
 		return "address"
@@ -1759,13 +1759,21 @@ func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
 		SupplyDCR:      supplyDCR,
 	}
 	if supplyDCR > 0 {
-		page.SupplyPct = supplyDCR / 21000000 * 100 // 21M DCR cap
+		// Percent of the network's ultimate coin supply, derived from the actual
+		// subsidy schedule so it is correct on every network rather than assuming
+		// mainnet's ~21M cap. UltimateSubsidy caches its result, so this is cheap.
+		ultimateDCR := float64(txhelpers.UltimateSubsidy(exp.ChainParams,
+			exp.dataSource.DCP0010ActivationHeight(),
+			exp.dataSource.DCP0012ActivationHeight())) / 1e8
+		if ultimateDCR > 0 {
+			page.SupplyPct = supplyDCR / ultimateDCR * 100
+		}
 		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
 	}
 	if homeInfo.TreasuryBalance != nil {
 		page.TreasuryDCR = float64(homeInfo.TreasuryBalance.Balance) / 1e8
 	}
-	exp.renderPage(w, exp.templatesV2, "dashboard", page)
+	exp.renderPage(w, exp.templates, "dashboard", page)
 }
 
 // stakingPage is the data for the v2 staking page.
@@ -1791,7 +1799,7 @@ func (exp *explorerUI) StakingV2(w http.ResponseWriter, r *http.Request) {
 	if supplyDCR := float64(homeInfo.CoinSupply) / 1e8; supplyDCR > 0 {
 		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
 	}
-	exp.renderPage(w, exp.templatesV2, "staking", page)
+	exp.renderPage(w, exp.templates, "staking", page)
 }
 
 // govProposal pairs a Politeia proposal with its computed vote metadata.
@@ -1833,7 +1841,7 @@ func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	exp.renderPage(w, exp.templatesV2, "governance", page)
+	exp.renderPage(w, exp.templates, "governance", page)
 }
 
 // Charts handles the charts displays showing the various charts plotted.

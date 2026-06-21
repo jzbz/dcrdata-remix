@@ -15,7 +15,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.}}</title>
 
-  {{/* Dark-by-default; the theme toggle is wired in a later pass. */}}
+  {{/* Apply the saved (or default-dark) theme before first paint: avoids a
+       flash of the wrong theme and keeps the toggle's state/glyph correct. */}}
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
   <link rel="stylesheet" href="{{asset "css/v2/fonts.css"}}">
   <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
 
@@ -46,7 +48,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5M12 11v9"/></svg>
       Blocks
     </a>
-    <a href="/blocks" class="{{if eq .ActiveNav "transactions"}}active{{end}}">
+    <a href="/mempool" class="{{if eq .ActiveNav "transactions"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
       Transactions
     </a>
@@ -57,10 +59,6 @@
     <a href="/staking" class="{{if eq .ActiveNav "staking"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z"/><path d="M12 7v10"/></svg>
       Staking
-    </a>
-    <a href="/blocks" class="{{if eq .ActiveNav "address"}}active{{end}}">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.5 17c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5M15 9h4M15 13h3"/></svg>
-      Address
     </a>
     <a href="/governance" class="{{if eq .ActiveNav "governance"}}active{{end}}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4 3 7 7 8 4-1 7-4 7-8V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>

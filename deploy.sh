@@ -245,6 +245,7 @@ txindex=1
 $( [[ $TESTNET -eq 1 ]] && echo "testnet=1" )
 EOF
   chown -R "$NODE_USER:$NODE_USER" "$NODE_DCRD_DIR"
+  chmod 600 "${NODE_DCRD_DIR}/dcrd.conf"  # contains the RPC password
 
   cat > /etc/systemd/system/dcrd.service <<EOF
 [Unit]
@@ -399,13 +400,14 @@ ${SITE} {
 	encode zstd gzip
 	reverse_proxy ${LISTEN}
 
-	@assets path /css/* /js/* /fonts/* /images/* /dist/*
+	@assets path /css/* /js/* /fonts/* /images/*
 	header @assets Cache-Control "public, max-age=604800"
 
 	header {
 		Referrer-Policy "same-origin"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
+$( [[ $HTTP_ONLY -eq 0 ]] && printf '\t\tStrict-Transport-Security "max-age=31536000; includeSubDomains"' )
 		-Server
 	}
 }

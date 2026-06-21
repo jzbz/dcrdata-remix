@@ -218,10 +218,8 @@ type explorerUI struct {
 	dbsSyncing    atomic.Value
 	devPrefetch   bool
 	templates     templates
-	// templatesV2 holds the redesigned, npm-free pages (bare CSS + native ESM)
-	// loaded from the views_v2 folder. They are served in parallel with the
-	// legacy templates during the migration off webpack.
-	templatesV2      templates
+	// assets produces content-hashed URLs for the npm-free v2 static files
+	// (no-build cache-busting; see AssetManager).
 	assets           *AssetManager
 	wsHub            *WebsocketHub
 	pageData         *pageData
@@ -383,9 +381,8 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	funcMap := makeTemplateFuncMap(exp.ChainParams, exp.assets)
 
 	// The dark-glass (npm-free) v2 pages are now the canonical UI. They share
-	// the chrome (head/sidebar/topbar) defined in views_v2/chrome.tmpl. The
-	// handlers feed these templates the same data structs the legacy pages used,
-	// so exp.templates and exp.templatesV2 both point at this one set.
+	// the chrome (head/sidebar/topbar) defined in views_v2/chrome.tmpl, and are
+	// fed the same data structs the legacy pages used.
 	exp.templates = newTemplates(v2Folder, cfg.ReloadHTML, []string{"chrome"}, funcMap)
 	for _, name := range []string{"dashboard", "blocks", "block", "tx", "address", "charts", "staking", "governance", "sidechains", "disapproved", "windows", "timelisting", "mempool", "ticketpool", "parameters", "agendas", "agenda", "proposals", "proposal", "treasury", "verify_message", "insight_root", "status", "rawtx", "attackcost", "visualblocks", "market"} {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -393,7 +390,6 @@ func New(cfg *ExplorerConfig) *explorerUI {
 			return nil
 		}
 	}
-	exp.templatesV2 = exp.templates
 
 	exp.addRoutes()
 

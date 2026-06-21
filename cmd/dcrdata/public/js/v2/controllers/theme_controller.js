@@ -19,7 +19,10 @@ export default class extends Controller {
   }
 
   current () {
-    return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+    // Dark is the default theme (the CSS :root is dark; light needs an explicit
+    // data-theme="light"). The head boot script normally sets the attribute, but
+    // default to dark if it is ever missing so the first toggle isn't a no-op.
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   }
 
   sync () {
