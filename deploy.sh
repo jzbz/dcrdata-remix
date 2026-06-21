@@ -222,10 +222,20 @@ else
     useradd --system --create-home --home-dir "$NODE_HOME" --shell /usr/sbin/nologin "$NODE_USER"
   fi
 
-  log "Installing dcrd + dcrctl (${DCRD_VERSION})"
+  log "Installing dcrd (${DCRD_VERSION})"
   GOBIN=/usr/local/bin GOTOOLCHAIN=local "$GO" install "github.com/decred/dcrd@${DCRD_VERSION}"
-  GOBIN=/usr/local/bin GOTOOLCHAIN=local "$GO" install "github.com/decred/dcrd/cmd/dcrctl@${DCRD_VERSION}"
   ok "dcrd installed ($(/usr/local/bin/dcrd --version 2>/dev/null | head -1 || echo "${DCRD_VERSION}"))"
+
+  # dcrctl is an optional admin CLI. It was moved out of the dcrd module into its
+  # own module (decred.org/dcrctl), versioned independently of dcrd — so it is
+  # installed at @latest, not @${DCRD_VERSION}. Best-effort: a hiccup fetching it
+  # must not abort the deploy, since dcrd and dcrdata don't need it to run.
+  log "Installing dcrctl (optional admin CLI)"
+  if GOBIN=/usr/local/bin GOTOOLCHAIN=local "$GO" install "decred.org/dcrctl@latest"; then
+    ok "dcrctl installed"
+  else
+    warn "dcrctl install failed (optional); continuing without it"
+  fi
 
   # Reuse the existing RPC password on re-runs so dcrdata's config stays valid.
   install -d -o "$NODE_USER" -g "$NODE_USER" "$NODE_DCRD_DIR"
