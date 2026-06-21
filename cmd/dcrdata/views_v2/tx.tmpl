@@ -1,7 +1,7 @@
 {{define "tx" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Transaction"}}
+{{template "v2-head" (dict "Title" "Transaction" "Data" .)}}
 <body data-controller="theme clipboard age">
 <div class="app">
   {{template "v2-sidebar" .}}

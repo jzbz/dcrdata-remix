@@ -1,7 +1,7 @@
 {{define "rawtx" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Decode / Broadcast Transaction"}}
+{{template "v2-head" (dict "Title" "Decode / Broadcast Transaction" "Data" .)}}
 <body data-controller="theme rawtx">
 <div class="app">
   {{template "v2-sidebar" .}}

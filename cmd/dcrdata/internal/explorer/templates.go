@@ -334,6 +334,23 @@ func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template
 		// asset returns a content-hashed URL for a static file (no-build
 		// cache-busting). See AssetManager.
 		"asset": assets.URL,
+		// dict builds a map from alternating key/value pairs so a sub-template
+		// can be handed more than one named value, e.g.
+		// {{template "v2-head" (dict "Title" "Blocks" "Data" .)}}.
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict: odd number of arguments")
+			}
+			m := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict: key at index %d is not a string", i)
+				}
+				m[key] = values[i+1]
+			}
+			return m, nil
+		},
 		// dcr formats an atom amount as a plain DCR string (shortest form),
 		// used by the v2 templates.
 		"dcr": func(atoms int64) string {

@@ -1,7 +1,7 @@
 {{define "mempool" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Mempool"}}
+{{template "v2-head" (dict "Title" "Mempool" "Data" .)}}
 <body data-controller="theme age">
 <div class="app">
   {{template "v2-sidebar" .}}

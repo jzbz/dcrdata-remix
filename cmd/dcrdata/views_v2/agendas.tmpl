@@ -1,7 +1,7 @@
 {{define "agendas" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Consensus Agendas"}}
+{{template "v2-head" (dict "Title" "Consensus Agendas" "Data" .)}}
 <body data-controller="theme">
 <div class="app">
   {{template "v2-sidebar" .}}

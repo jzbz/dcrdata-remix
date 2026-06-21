@@ -2,7 +2,7 @@
 {{- $botState := .XcState -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Market Data"}}
+{{template "v2-head" (dict "Title" "Market Data" "Data" .)}}
 <body data-controller="theme market">
 <div class="app">
   {{template "v2-sidebar" .}}

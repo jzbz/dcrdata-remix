@@ -1,7 +1,7 @@
 {{define "attackcost" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Majority Attack Cost Calculator"}}
+{{template "v2-head" (dict "Title" "Majority Attack Cost Calculator" "Data" .)}}
 <body data-controller="theme attackcost"
   data-attackcost-height="{{.Height}}"
   data-attackcost-hashrate="{{.HashRate}}"

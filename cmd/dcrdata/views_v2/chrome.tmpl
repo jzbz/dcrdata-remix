@@ -4,7 +4,7 @@
   <!DOCTYPE>/<html>/<body> (so it can set the body's data-controller list) and a
   .main column, then pulls in these partials:
 
-    {{template "v2-head" "Page Title"}}   - argument is the <title> text
+    {{template "v2-head" (dict "Title" "Page Title" "Data" .)}}  - Title is the <title> text; Data is the page data (embeds CommonPageData)
     {{template "v2-sidebar" .}}           - argument is the page data (embeds CommonPageData)
     {{template "v2-topbar" .}}            - argument is the page data (price, search)
 */}}
@@ -13,11 +13,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.}}</title>
+  <title>{{.Title}} · dcrdata</title>
+
+  {{/* Open Graph / Twitter card for social-media link previews. og:image and
+       og:url must be absolute, so build them from the request's BaseURL. */}}
+  <meta name="description" content="Decred block explorer: blocks, transactions, tickets, treasury, and on-chain governance.">
+  {{with .Data}}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="dcrdata">
+  <meta property="og:title" content="{{$.Title}} · dcrdata">
+  <meta property="og:description" content="Decred block explorer: blocks, transactions, tickets, treasury, and on-chain governance.">
+  <meta property="og:url" content="{{.BaseURL}}{{.RequestURI}}">
+  <meta property="og:image" content="{{.BaseURL}}{{asset "images/og-card.png"}}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{$.Title}} · dcrdata">
+  <meta name="twitter:description" content="Decred block explorer: blocks, transactions, tickets, treasury, and on-chain governance.">
+  <meta name="twitter:image" content="{{.BaseURL}}{{asset "images/og-card.png"}}">
+  {{end}}
 
   {{/* Apply the saved (or default-dark) theme before first paint: avoids a
        flash of the wrong theme and keeps the toggle's state/glyph correct. */}}
   <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+  <link rel="icon" type="image/svg+xml" href="{{asset "images/dcr.svg"}}">
   <link rel="stylesheet" href="{{asset "css/v2/fonts.css"}}">
   <link rel="stylesheet" href="{{asset "css/v2/main.css"}}">
 
@@ -32,7 +51,7 @@
 {{define "v2-sidebar"}}
 <aside class="sidebar">
   <a class="brand" href="/">
-    <span class="mark">d</span>
+    <img class="mark" src="{{asset "images/dcr.svg"}}" alt="Decred" width="38" height="38">
     <span>
       <span class="name">dcrdata</span><br>
       <span class="sub">Block Explorer</span>

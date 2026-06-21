@@ -1,7 +1,7 @@
 {{define "visualblocks" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Visual Blocks"}}
+{{template "v2-head" (dict "Title" "Visual Blocks" "Data" .)}}
 <body data-controller="theme age">
 <div class="app">
   {{template "v2-sidebar" .}}

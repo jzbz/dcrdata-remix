@@ -1,7 +1,7 @@
 {{define "block" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" (printf "Block %d" .Data.Height)}}
+{{template "v2-head" (dict "Title" (printf "Block %d" .Data.Height) "Data" .)}}
 <body data-controller="theme clipboard age">
 <div class="app">
   {{template "v2-sidebar" .}}

@@ -1,7 +1,7 @@
 {{define "insight_root" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Insight API"}}
+{{template "v2-head" (dict "Title" "Insight API" "Data" .)}}
 <body data-controller="theme clipboard">
 <div class="app">
   {{template "v2-sidebar" .}}

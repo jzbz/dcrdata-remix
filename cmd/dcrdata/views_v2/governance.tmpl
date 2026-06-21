@@ -1,7 +1,7 @@
 {{define "governance" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" "Governance"}}
+{{template "v2-head" (dict "Title" "Governance" "Data" .)}}
 <body data-controller="theme">
 <div class="app">
   {{template "v2-sidebar" .}}

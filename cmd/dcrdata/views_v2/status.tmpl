@@ -1,7 +1,7 @@
 {{define "status" -}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "v2-head" (printf "Status — %s" .StatusType)}}
+{{template "v2-head" (dict "Title" (printf "Status — %s" .StatusType) "Data" .)}}
 <body data-controller="theme">
 <div class="app">
   {{template "v2-sidebar" .}}
