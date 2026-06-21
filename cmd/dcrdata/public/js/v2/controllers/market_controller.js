@@ -3,7 +3,7 @@
 // library). The exchange comparison table, aggregate price and fiat indices are
 // all server-rendered; this controller only drives the one history chart.
 import { Controller } from '@hotwired/stimulus'
-import { areaChart } from '../charts.js'
+import { areaChart, drawIn } from '../charts.js'
 
 export default class extends Controller {
   static targets = ['exchange', 'bin', 'chart', 'meta']
@@ -55,6 +55,7 @@ export default class extends Controller {
       const closes = (data.sticks || []).map(s => Number(s.close)).filter(n => !isNaN(n))
       if (closes.length < 2) { this.empty('Not enough data for this market.'); return }
       this.chartTarget.innerHTML = areaChart(closes, { color: '#5BA8FF', width: 820, height: 300 })
+      drawIn(this.chartTarget)
     } catch (e) {
       this.empty('Chart unavailable.')
     }

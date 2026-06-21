@@ -493,10 +493,10 @@
   .donut-label { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 24px; font-family: var(--font-display); font-size: 20px; pointer-events: none; }
   @media (max-width: 980px) { .chain-strip { grid-template-columns: 1fr 1fr; } .cs-col { border-left: 0; padding-left: 0; } .dash-2col { grid-template-columns: 1fr; } }
 
-  .chart-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: chart-draw 1.4s ease forwards; }
+  .chart-line { stroke-dasharray: var(--len, none); animation: chart-draw 1.4s ease forwards; }
   .chart-fill { opacity: 0; animation: chart-fade 1.2s ease forwards 0.25s; }
   .donut-ring { stroke-dashoffset: var(--dash); animation: donut-sweep 1.6s ease forwards; }
-  @keyframes chart-draw { to { stroke-dashoffset: 0; } }
+  @keyframes chart-draw { from { stroke-dashoffset: var(--len, 0); } to { stroke-dashoffset: 0; } }
   @keyframes chart-fade { to { opacity: 1; } }
   @keyframes donut-sweep { to { stroke-dashoffset: var(--off); } }
   @media (prefers-reduced-motion: reduce) {

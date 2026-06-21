@@ -1,7 +1,8 @@
 // charts.js — minimal inline-SVG chart toolkit (no chart library), matching the
 // redesign's type and color system. Builds SVG markup strings: smooth area/line
-// charts (Catmull-Rom spline -> cubic bezier, vertical gradient fill, draw-in
-// animation via a pathLength-normalized stroke), sparklines, and donuts.
+// charts (Catmull-Rom spline -> cubic bezier, vertical gradient fill, a draw-in
+// stroke animation), sparklines, and donuts. After inserting the markup, call
+// drawIn() to activate the line animation.
 
 let uid = 0
 
@@ -38,7 +39,7 @@ function scale (values, w, h, pad) {
 }
 
 // areaChart returns an SVG string: a gradient-filled smooth area under a line.
-// The line carries pathLength="1" so CSS can draw it in (see main.css).
+// Call drawIn() on the container afterward to animate the line (see main.css).
 export function areaChart (values, opts = {}) {
   const { color = '#2ED6A1', height = 90, width = 320, pad = 6 } = opts
   if (!values || values.length < 2) return '<div class="chart-empty">no data</div>'
@@ -52,8 +53,21 @@ export function areaChart (values, opts = {}) {
     <stop offset="1" stop-color="${color}" stop-opacity="0"/>
   </linearGradient></defs>
   <path class="chart-fill" d="${area}" fill="url(#${id})"/>
-  <path class="chart-line" d="${line}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" pathLength="1"/>
+  <path class="chart-line" d="${line}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/>
 </svg>`
+}
+
+// drawIn activates the line draw-in: it measures each chart line's real
+// geometric length and exposes it as the --len custom property that the CSS
+// animation keys off (see .chart-line in main.css). We measure here at runtime
+// rather than declaring pathLength="1" on the path because pathLength is ignored
+// for dashed strokes when vector-effect="non-scaling-stroke" is set, which left
+// the line broken. Call this after inserting the markup into a connected node.
+export function drawIn (root) {
+  if (!root) return
+  for (const line of root.querySelectorAll('.chart-line')) {
+    line.style.setProperty('--len', line.getTotalLength().toFixed(2))
+  }
 }
 
 // sparkline is a compact area chart for stat tiles.

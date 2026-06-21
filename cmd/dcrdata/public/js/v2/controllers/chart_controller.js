@@ -3,7 +3,7 @@
 // (points-value, handy for sparklines/previews) or fetched from dcrdata's chart
 // API (url-value), pulling the y-series out by key (ykey-value).
 import { Controller } from '@hotwired/stimulus'
-import { areaChart, sparkline, donut } from '../charts.js'
+import { areaChart, sparkline, donut, drawIn } from '../charts.js'
 
 export default class extends Controller {
   static values = {
@@ -42,8 +42,10 @@ export default class extends Controller {
       this.element.innerHTML = donut(ys[0] || 0, this.maxValue || 1, opts)
     } else if (this.kindValue === 'sparkline') {
       this.element.innerHTML = sparkline(ys, opts)
+      drawIn(this.element)
     } else {
       this.element.innerHTML = areaChart(ys, opts)
+      drawIn(this.element)
     }
   }
 }
