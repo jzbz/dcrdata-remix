@@ -233,6 +233,10 @@ type explorerUI struct {
 	// page that should be accessible during DB synchronization.
 	displaySyncStatusPage atomic.Value
 	politeiaURL           string
+	// allowedHosts is the operator-configured public host allowlist. The first
+	// entry is treated as the canonical host for building absolute URLs (e.g.
+	// the social-card og:image/og:url) when the proxied request lacks one.
+	allowedHosts []string
 
 	invsMtx sync.RWMutex
 	invs    *types.MempoolInfo
@@ -302,6 +306,7 @@ type ExplorerConfig struct {
 	TestnetLink   string
 	OnionAddress  string
 	ReloadHTML    bool
+	AllowedHosts  []string
 }
 
 // New returns an initialized instance of explorerUI
@@ -320,6 +325,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	exp.voteTracker = cfg.Tracker
 	exp.proposals = cfg.Proposals
 	exp.politeiaURL = cfg.PoliteiaURL
+	exp.allowedHosts = cfg.AllowedHosts
 	explorerLinks.Mainnet = cfg.MainnetLink
 	explorerLinks.Testnet = cfg.TestnetLink
 	explorerLinks.MainnetSearch = cfg.MainnetLink + "search?search="

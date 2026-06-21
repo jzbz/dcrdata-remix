@@ -2463,15 +2463,35 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		log.Errorf("Cookie dcrdataDarkBG retrieval error: %v", err)
 	}
 
-	scheme := r.URL.Scheme
+	// Build the public-facing base URL (used for absolute links such as the
+	// social-card og:image/og:url). dcrdata typically runs behind a
+	// TLS-terminating reverse proxy, so the request it sees is plain HTTP to a
+	// loopback address: derive the real scheme and host from the forwarded
+	// headers, falling back to the operator's configured canonical host when the
+	// AllowedHosts middleware has blanked r.Host for a non-matching request.
+	scheme := strings.ToLower(r.Header.Get(xForwardedProto))
 	if scheme == "" {
-		if r.TLS == nil {
-			scheme = "http"
-		} else {
+		scheme = strings.ToLower(r.Header.Get(xForwardedScheme))
+	}
+	if scheme == "" {
+		if r.TLS != nil {
 			scheme = "https"
+		} else if len(exp.allowedHosts) > 0 {
+			// A configured public host implies a normal proxied HTTPS deploy.
+			scheme = "https"
+		} else {
+			scheme = "http"
 		}
 	}
-	baseURL := scheme + "://" + r.Host // assumes not opaque url
+	host := r.Host
+	if host == "" {
+		if xfh := r.Header.Get(xForwardedHost); xfh != "" {
+			host = xfh
+		} else if len(exp.allowedHosts) > 0 {
+			host = exp.allowedHosts[0]
+		}
+	}
+	baseURL := scheme + "://" + host // assumes not opaque url
 
 	cpd := &CommonPageData{
 		Tip:           tip,

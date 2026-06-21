@@ -497,6 +497,7 @@ func _main(ctx context.Context) error {
 		TestnetLink:   cfg.TestnetLink,
 		ReloadHTML:    cfg.ReloadHTML,
 		OnionAddress:  cfg.OnionAddress,
+		AllowedHosts:  cfg.AllowedHosts,
 	})
 	// TODO: allow views config
 	if explore == nil {
