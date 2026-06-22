@@ -86,6 +86,16 @@ const (
 		` ON tickets(pool_status);`
 	DeindexTicketsTableOnPoolStatus = `DROP INDEX IF EXISTS ` + IndexOfTicketsTableOnPoolStatus + ` CASCADE;`
 
+	// DeleteTicketsDuplicateRows removes rows that would violate the unique
+	// index uix_ticket_hashes_index. This should be run prior to creating the
+	// index.
+	DeleteTicketsDuplicateRows = `DELETE FROM tickets
+		WHERE id IN (SELECT id FROM (
+				SELECT id,
+					row_number() OVER (PARTITION BY tx_hash, block_hash ORDER BY id DESC) AS rnum
+				FROM tickets) t
+			WHERE t.rnum > 1);`
+
 	allCols = `id, tx_hash, block_hash, block_height, purchase_tx_db_id,
 		stakesubmission_address, is_multisig, is_split, num_inputs, price, fee, spend_type,
 		pool_status, is_mainchain, spend_height, spend_tx_db_id`
@@ -244,6 +254,15 @@ const (
 		` ON votes(block_time);`
 	DeindexVotesTableOnBlockTime = `DROP INDEX ` + IndexOfVotesTableOnBlockTime + ` CASCADE;`
 
+	// DeleteVotesDuplicateRows removes rows that would violate the unique index
+	// uix_votes_hashes_index. This should be run prior to creating the index.
+	DeleteVotesDuplicateRows = `DELETE FROM votes
+		WHERE id IN (SELECT id FROM (
+				SELECT id,
+					row_number() OVER (PARTITION BY tx_hash, block_hash ORDER BY id DESC) AS rnum
+				FROM votes) t
+			WHERE t.rnum > 1);`
+
 	SelectAllVoteDbIDsHeightsTicketHashes = `SELECT id, height, ticket_hash FROM votes;`
 	SelectAllVoteDbIDsHeightsTicketDbIDs  = `SELECT id, height, ticket_tx_db_id FROM votes;`
 
@@ -306,6 +325,16 @@ const (
 	IndexMissesTableOnHashes = `CREATE UNIQUE INDEX ` + IndexOfMissesTableOnHashes +
 		` ON misses(ticket_hash, block_hash);`
 	DeindexMissesTableOnHashes = `DROP INDEX ` + IndexOfMissesTableOnHashes + ` CASCADE;`
+
+	// DeleteMissesDuplicateRows removes rows that would violate the unique
+	// index uix_misses_hashes_index. This should be run prior to creating the
+	// index.
+	DeleteMissesDuplicateRows = `DELETE FROM misses
+		WHERE id IN (SELECT id FROM (
+				SELECT id,
+					row_number() OVER (PARTITION BY ticket_hash, block_hash ORDER BY id DESC) AS rnum
+				FROM misses) t
+			WHERE t.rnum > 1);`
 
 	SelectMissesInBlock = `SELECT ticket_hash FROM misses WHERE block_hash = $1;`
 

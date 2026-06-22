@@ -257,6 +257,42 @@ func deleteDuplicateAgendaVotes(db *sql.DB) (int64, error) {
 	return sqlExec(db, internal.DeleteAgendaVotesDuplicateRows, execErrPrefix)
 }
 
+// deleteDuplicateTickets deletes rows in tickets with duplicate tx-block
+// hashes, leaving a single row for each (tx_hash, block_hash).
+func deleteDuplicateTickets(db *sql.DB) (int64, error) {
+	if isuniq, err := IsUniqueIndex(db, "uix_ticket_hashes_index"); err != nil && err != sql.ErrNoRows {
+		return 0, err
+	} else if isuniq {
+		return 0, nil
+	}
+	execErrPrefix := "failed to delete duplicate tickets: "
+	return sqlExec(db, internal.DeleteTicketsDuplicateRows, execErrPrefix)
+}
+
+// deleteDuplicateVotes deletes rows in votes with duplicate tx-block hashes,
+// leaving a single row for each (tx_hash, block_hash).
+func deleteDuplicateVotes(db *sql.DB) (int64, error) {
+	if isuniq, err := IsUniqueIndex(db, "uix_votes_hashes_index"); err != nil && err != sql.ErrNoRows {
+		return 0, err
+	} else if isuniq {
+		return 0, nil
+	}
+	execErrPrefix := "failed to delete duplicate votes: "
+	return sqlExec(db, internal.DeleteVotesDuplicateRows, execErrPrefix)
+}
+
+// deleteDuplicateMisses deletes rows in misses with duplicate ticket-block
+// hashes, leaving a single row for each (ticket_hash, block_hash).
+func deleteDuplicateMisses(db *sql.DB) (int64, error) {
+	if isuniq, err := IsUniqueIndex(db, "uix_misses_hashes_index"); err != nil && err != sql.ErrNoRows {
+		return 0, err
+	} else if isuniq {
+		return 0, nil
+	}
+	execErrPrefix := "failed to delete duplicate misses: "
+	return sqlExec(db, internal.DeleteMissesDuplicateRows, execErrPrefix)
+}
+
 // --- stake (votes, tickets, misses, treasury) tables ---
 
 func insertTreasuryTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked, updateExistingRecords bool) error {
