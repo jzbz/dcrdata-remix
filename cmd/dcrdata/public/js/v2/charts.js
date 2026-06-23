@@ -57,17 +57,43 @@ export function areaChart (values, opts = {}) {
 </svg>`
 }
 
-// drawIn activates the line draw-in: it measures each chart line's real
-// geometric length and exposes it as the --len custom property that the CSS
-// animation keys off (see .chart-line in main.css). We measure here at runtime
-// rather than declaring pathLength="1" on the path because pathLength is ignored
-// for dashed strokes when vector-effect="non-scaling-stroke" is set, which left
-// the line broken. Call this after inserting the markup into a connected node.
+// drawIn activates the line draw-in: it measures each chart line's length and
+// exposes it as the --len custom property that the CSS animation keys off (see
+// .chart-line in main.css). The line is stroked with vector-effect:
+// non-scaling-stroke inside a viewBox stretched by preserveAspectRatio="none",
+// so its dash pattern is measured in *screen pixels*, not SVG user units.
+// getTotalLength() returns user units, which is wrong whenever the container's
+// aspect ratio differs from the viewBox — the dash comes out too short and the
+// line is only drawn partway ("broken"). We instead measure the real on-screen
+// length by sampling the path and mapping each sample through its screen CTM.
+// Call this after inserting the markup into a connected, laid-out node.
 export function drawIn (root) {
   if (!root) return
   for (const line of root.querySelectorAll('.chart-line')) {
-    line.style.setProperty('--len', line.getTotalLength().toFixed(2))
+    line.style.setProperty('--len', screenLength(line).toFixed(2))
   }
+}
+
+// screenLength returns a path's rendered length in CSS pixels, accounting for
+// any non-uniform viewBox scaling. Falls back to the user-space length when the
+// element is not laid out (no screen CTM available).
+function screenLength (path) {
+  const total = path.getTotalLength()
+  const ctm = path.getScreenCTM()
+  if (!total || !ctm) return total || 0
+  const steps = 160
+  let len = 0
+  let px = null
+  let py = null
+  for (let i = 0; i <= steps; i++) {
+    const p = path.getPointAtLength((i / steps) * total)
+    const sx = ctm.a * p.x + ctm.c * p.y + ctm.e
+    const sy = ctm.b * p.x + ctm.d * p.y + ctm.f
+    if (px !== null) len += Math.hypot(sx - px, sy - py)
+    px = sx
+    py = sy
+  }
+  return len
 }
 
 // sparkline is a compact area chart for stat tiles.

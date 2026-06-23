@@ -21,6 +21,20 @@ export default class extends Controller {
     } else if (this.hasUrlValue) {
       this.fetchAndDraw()
     }
+    // The draw-in dash length is measured in rendered pixels, so it must be
+    // re-measured when the container resizes or the line re-breaks (see
+    // drawIn/screenLength in charts.js). Donuts don't use the dash draw-in.
+    if (this.kindValue !== 'donut') {
+      this.resizeObserver = new ResizeObserver(() => drawIn(this.element))
+      this.resizeObserver.observe(this.element)
+    }
+  }
+
+  disconnect () {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
+    }
   }
 
   async fetchAndDraw () {
