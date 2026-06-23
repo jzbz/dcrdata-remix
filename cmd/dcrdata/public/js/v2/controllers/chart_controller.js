@@ -25,12 +25,16 @@ export default class extends Controller {
     // re-measured when the container resizes or the line re-breaks (see
     // drawIn/screenLength in charts.js). Donuts don't use the dash draw-in.
     if (this.kindValue !== 'donut') {
-      this.resizeObserver = new ResizeObserver(() => drawIn(this.element))
+      this.resizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(this.redrawFrame)
+        this.redrawFrame = requestAnimationFrame(() => drawIn(this.element))
+      })
       this.resizeObserver.observe(this.element)
     }
   }
 
   disconnect () {
+    cancelAnimationFrame(this.redrawFrame)
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null

@@ -104,11 +104,18 @@ export function drawIn (root) {
 // screenLength returns a path's rendered length in CSS pixels, accounting for
 // any non-uniform viewBox scaling. Falls back to the user-space length when the
 // element is not laid out (no screen CTM available).
+//
+// The length is sampled as a chord sum, which always *under*-estimates a curve.
+// A wiggly line (e.g. a volatile daily series) undersampled here yields a dash
+// shorter than the line, so the draw-in stops partway and the rest of the line
+// is missing. Sample densely and apply a small safety margin so the dash always
+// covers the whole line; over-estimating only finishes the wipe a touch early,
+// which is imperceptible, whereas under-estimating visibly truncates the line.
 function screenLength (path) {
   const total = path.getTotalLength()
   const ctm = path.getScreenCTM()
   if (!total || !ctm) return total || 0
-  const steps = 160
+  const steps = 2000
   let len = 0
   let px = null
   let py = null
@@ -120,7 +127,7 @@ function screenLength (path) {
     px = sx
     py = sy
   }
-  return len
+  return len * 1.1
 }
 
 // sparkline is a compact area chart for stat tiles.
