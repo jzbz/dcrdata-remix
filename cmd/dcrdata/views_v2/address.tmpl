@@ -28,7 +28,11 @@
 
       <p class="section-title">Balance over time</p>
       <div class="panel" style="padding:var(--sp-5)">
-        <div class="chart-placeholder">balance-over-time chart — coming in the charts phase</div>
+        <div class="chart-body" style="height:200px" data-controller="chart"
+             data-chart-url-value="/api/address/{{.Address}}/amountflow/day"
+             data-chart-ykey-value="net"
+             data-chart-accumulate-value="true"
+             data-chart-color-value="#2ED6A1"></div>
       </div>
 
       <p class="section-title">Transaction history</p>
