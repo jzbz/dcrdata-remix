@@ -85,8 +85,11 @@ export default class extends Controller {
         ys = ys.map((v, i) => (den[i] ? v / den[i] : 0))
       }
       if (this.accumulateValue) {
+        // Running total seeded with a 0 baseline, so the series starts from
+        // zero (e.g. an address balance before its first tx) and a single-period
+        // history still has two points to draw instead of rendering "no data".
         let sum = 0
-        ys = ys.map(v => (sum += v))
+        ys = [0, ...ys.map(v => (sum += v))]
       }
       this.draw(ys)
     } catch (e) {
