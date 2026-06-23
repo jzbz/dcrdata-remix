@@ -1771,9 +1771,14 @@ func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
 		}
 		page.StakePct = homeInfo.TotalLockedDCR / supplyDCR * 100
 	}
+	// Total treasury = decentralized treasury account balance + the legacy
+	// dev-fund address balance (DevFund, still ~40k DCR). Omitting the legacy
+	// balance understates the treasury.
+	treasuryAtoms := homeInfo.DevFund
 	if homeInfo.TreasuryBalance != nil {
-		page.TreasuryDCR = float64(homeInfo.TreasuryBalance.Balance) / 1e8
+		treasuryAtoms += homeInfo.TreasuryBalance.Balance
 	}
+	page.TreasuryDCR = float64(treasuryAtoms) / 1e8
 	exp.renderPage(w, exp.templates, "dashboard", page)
 }
 
@@ -1813,7 +1818,8 @@ type govProposal struct {
 type governancePage struct {
 	*CommonPageData
 	Treasury    *dbtypes.TreasuryBalance
-	TreasuryDCR float64
+	TreasuryDCR float64 // total: decentralized account + legacy dev-fund address
+	LegacyDCR   float64 // legacy dev-fund address balance only
 	AddedDCR    float64
 	SpentDCR    float64
 	Proposals   []govProposal
@@ -1825,14 +1831,20 @@ func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
 	common := exp.commonData(r)
 	exp.pageData.RLock()
 	treasury := exp.pageData.HomeInfo.TreasuryBalance
+	devFund := exp.pageData.HomeInfo.DevFund
 	exp.pageData.RUnlock()
 
 	page := &governancePage{CommonPageData: common, Treasury: treasury}
+	// Total treasury includes the legacy dev-fund address balance alongside the
+	// decentralized treasury account.
+	treasuryAtoms := devFund
 	if treasury != nil {
-		page.TreasuryDCR = float64(treasury.Balance) / 1e8
+		treasuryAtoms += treasury.Balance
 		page.AddedDCR = float64(treasury.Added) / 1e8
 		page.SpentDCR = float64(treasury.Spent) / 1e8
 	}
+	page.TreasuryDCR = float64(treasuryAtoms) / 1e8
+	page.LegacyDCR = float64(devFund) / 1e8
 	if exp.proposals != nil {
 		tip := exp.Height()
 		target := int64(exp.ChainParams.TargetTimePerBlock.Seconds())

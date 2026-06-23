@@ -14,10 +14,11 @@
         <div class="card stat" style="grid-column:span 2;padding:var(--sp-6)">
           <div class="k">Treasury Balance</div>
           <div class="cs-height" data-controller="count" data-count-to-value="{{printf "%.0f" .TreasuryDCR}}">{{threeSigFigs .TreasuryDCR}}</div>
-          <div class="sub">DCR · decentralized treasury</div>
+          <div class="sub">DCR · decentralized + legacy</div>
         </div>
-        <div class="card stat"><div class="k">Added</div><div class="v">{{threeSigFigs .AddedDCR}}</div><div class="sub">DCR all-time</div></div>
-        <div class="card stat"><div class="k">Spent</div><div class="v">{{threeSigFigs .SpentDCR}}</div><div class="sub">DCR all-time</div></div>
+        <div class="card stat"><div class="k">Legacy Treasury</div><div class="v">{{threeSigFigs .LegacyDCR}}</div><div class="sub">DCR · dev-fund address</div></div>
+        <div class="card stat"><div class="k">Added</div><div class="v">{{threeSigFigs .AddedDCR}}</div><div class="sub">DCR · decentralized</div></div>
+        <div class="card stat"><div class="k">Spent</div><div class="v">{{threeSigFigs .SpentDCR}}</div><div class="sub">DCR · decentralized</div></div>
       </div>
 
       <p class="section-title">Treasury over time</p>
