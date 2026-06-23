@@ -23,7 +23,7 @@
       {{with .Metadata}}
       <div class="stat-grid">
         <div class="card stat"><div class="k">Status</div><div class="v" style="font-size:18px">{{.VoteStatusDesc}}</div><div class="sub">{{.ProposalStatusDesc}}</div></div>
-        <div class="card stat"><div class="k">Approval</div><div class="v">{{printf "%.1f" .Approval}}%</div><div class="sub">{{if .IsPassing}}passing{{else}}not passing{{end}}</div></div>
+        <div class="card stat"><div class="k">Approval</div><div class="v">{{printf "%.1f" (f32x100 .Approval)}}%</div><div class="sub">{{if .IsPassing}}passing{{else}}not passing{{end}}</div></div>
         <div class="card stat"><div class="k">Yes</div><div class="v amt-in">{{intComma .Yes}}</div></div>
         <div class="card stat"><div class="k">No</div><div class="v amt-out">{{intComma .No}}</div></div>
         <div class="card stat"><div class="k">Total Votes</div><div class="v">{{intComma .VoteCount}}</div><div class="sub">quorum {{intComma .QuorumCount}}</div></div>
@@ -31,10 +31,10 @@
 
       <p class="section-title">Vote result</p>
       <div class="card" style="padding:var(--sp-5)">
-        <div class="votebar"><div class="yes" style="width:{{printf "%.1f" .Approval}}%"></div><div class="no" style="width:{{printf "%.1f" .Rejection}}%"></div></div>
+        <div class="votebar"><div class="yes" style="width:{{printf "%.1f" (f32x100 .Approval)}}%"></div><div class="no" style="width:{{printf "%.1f" (f32x100 .Rejection)}}%"></div></div>
         <div class="prop-stats" style="margin-top:var(--sp-3)">
-          <span class="amt-in">Yes {{printf "%.1f" .Approval}}%</span>
-          <span class="amt-out">No {{printf "%.1f" .Rejection}}%</span>
+          <span class="amt-in">Yes {{printf "%.1f" (f32x100 .Approval)}}%</span>
+          <span class="amt-out">No {{printf "%.1f" (f32x100 .Rejection)}}%</span>
           <span class="text-muted">{{if .QuorumAchieved}}quorum reached{{else}}quorum not reached{{end}}</span>
         </div>
       </div>

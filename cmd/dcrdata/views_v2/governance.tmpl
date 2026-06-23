@@ -39,7 +39,7 @@
             {{with .Meta}}<span class="tag" data-kind="{{if .IsPassing}}vote{{else}}ticket{{end}}">{{.VoteStatusDesc}}</span>{{end}}
           </div>
           {{with .Meta}}
-          <div class="votebar"><div class="yes" style="width:{{printf "%.1f" .Approval}}%"></div><div class="no" style="width:{{printf "%.1f" .Rejection}}%"></div></div>
+          <div class="votebar"><div class="yes" style="width:{{printf "%.1f" (f32x100 .Approval)}}%"></div><div class="no" style="width:{{printf "%.1f" (f32x100 .Rejection)}}%"></div></div>
           <div class="prop-stats">
             <span class="amt-in">Yes {{intComma .Yes}}</span>
             <span class="amt-out">No {{intComma .No}}</span>
