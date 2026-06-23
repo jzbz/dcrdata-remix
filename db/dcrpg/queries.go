@@ -4063,7 +4063,10 @@ func parseRowsSentReceived(rows *sql.Rows) (*dbtypes.ChartsData, error) {
 		// given block. If the difference is positive then the value is unspent amount
 		// otherwise if the value is zero then all amount is spent and if the net amount
 		// is negative then for the given block more amount was sent than received.
-		items.Net = append(items.Net, toCoin(received-sent))
+		// Subtract in coin (float) space: received and sent are uint64, so
+		// received-sent would underflow to a huge positive value whenever sent
+		// exceeds received (a spend-heavy period).
+		items.Net = append(items.Net, toCoin(received)-toCoin(sent))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

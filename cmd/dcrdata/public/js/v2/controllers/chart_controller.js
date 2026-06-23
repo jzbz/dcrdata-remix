@@ -12,7 +12,8 @@ export default class extends Controller {
     color: { type: String, default: '#2ED6A1' },
     kind: { type: String, default: 'area' }, // area | sparkline | donut
     points: String, // inline JSON array, overrides url
-    max: Number // for donut
+    max: Number, // for donut
+    accumulate: Boolean // running-sum the series before drawing (e.g. per-period flows -> balance)
   }
 
   connect () {
@@ -47,8 +48,12 @@ export default class extends Controller {
       const resp = await fetch(this.urlValue, { headers: { Accept: 'application/json' } })
       if (!resp.ok) throw new Error(resp.status)
       const data = await resp.json()
-      const ys = (this.ykeyValue && data[this.ykeyValue]) || []
-      this.draw(ys.map(Number))
+      let ys = ((this.ykeyValue && data[this.ykeyValue]) || []).map(Number)
+      if (this.accumulateValue) {
+        let sum = 0
+        ys = ys.map(v => (sum += v))
+      }
+      this.draw(ys)
     } catch (e) {
       this.element.innerHTML = '<div class="chart-empty">chart unavailable</div>'
     }
