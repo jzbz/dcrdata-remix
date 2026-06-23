@@ -37,16 +37,24 @@ export default class extends Controller {
 
   disconnect () {
     cancelAnimationFrame(this.redrawFrame)
+    clearTimeout(this.retryTimer)
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null
     }
   }
 
-  async fetchAndDraw () {
-    this.element.innerHTML = '<div class="chart-empty">loading…</div>'
+  async fetchAndDraw (attempt = 0) {
+    if (attempt === 0) this.element.innerHTML = '<div class="chart-empty">loading…</div>'
     try {
       const resp = await fetch(this.urlValue, { headers: { Accept: 'application/json' } })
+      // Some series (e.g. the combined treasury chart) are built lazily and
+      // return 503 until ready; poll briefly so the chart fills in on its own.
+      if (resp.status === 503 && attempt < 12) {
+        this.element.innerHTML = '<div class="chart-empty">preparing…</div>'
+        this.retryTimer = setTimeout(() => this.fetchAndDraw(attempt + 1), 5000)
+        return
+      }
       if (!resp.ok) throw new Error(resp.status)
       const data = await resp.json()
       let ys = ((this.ykeyValue && data[this.ykeyValue]) || []).map(Number)

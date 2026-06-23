@@ -125,6 +125,8 @@ type appContext struct {
 	ProposalsDB *politeia.ProposalsDB
 	maxCSVAddrs int
 	charts      *cache.ChartData
+
+	treasuryChart *treasuryChartCache
 }
 
 // AppContextConfig is the configuration for the appContext and the only
@@ -154,15 +156,16 @@ func NewContext(cfg *AppContextConfig) *appContext {
 	}
 
 	return &appContext{
-		nodeClient:  cfg.Client,
-		Params:      cfg.Params,
-		DataSource:  cfg.DataSource,
-		xcBot:       cfg.XcBot,
-		AgendaDB:    cfg.AgendasDBInstance,
-		ProposalsDB: cfg.ProposalsDB,
-		Status:      apitypes.NewStatus(uint32(nodeHeight), conns, APIVersion, cfg.AppVer, cfg.Params.Name),
-		maxCSVAddrs: cfg.MaxAddrs,
-		charts:      cfg.Charts,
+		nodeClient:    cfg.Client,
+		Params:        cfg.Params,
+		DataSource:    cfg.DataSource,
+		xcBot:         cfg.XcBot,
+		AgendaDB:      cfg.AgendasDBInstance,
+		ProposalsDB:   cfg.ProposalsDB,
+		Status:        apitypes.NewStatus(uint32(nodeHeight), conns, APIVersion, cfg.AppVer, cfg.Params.Name),
+		maxCSVAddrs:   cfg.MaxAddrs,
+		charts:        cfg.Charts,
+		treasuryChart: &treasuryChartCache{},
 	}
 }
 
@@ -1883,6 +1886,150 @@ func (c *appContext) getTreasuryIO(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, data, m.GetIndentCtx(r))
+}
+
+// treasuryChartCache holds the precomputed combined-treasury balance series
+// (decentralized account + legacy dev-fund address). The legacy address has a
+// very large history, so its amount-flow query takes tens of seconds; building
+// the series on demand would stall the request. Instead it is computed in the
+// background and cached, then refreshed at most hourly.
+type treasuryChartCache struct {
+	sync.Mutex
+	json     []byte
+	at       time.Time
+	updating bool
+}
+
+type balPoint struct {
+	t int64
+	v float64
+}
+
+// getTreasuryChart serves the combined treasury balance over time as
+// {"t":[...],"balance":[...]} in DCR. It returns the cached series and kicks off
+// a background refresh when the cache is empty or older than an hour. The first
+// request after startup returns 503 while the series is built.
+func (c *appContext) getTreasuryChart(w http.ResponseWriter, r *http.Request) {
+	tc := c.treasuryChart
+	tc.Lock()
+	data := tc.json
+	if (data == nil || time.Since(tc.at) > time.Hour) && !tc.updating {
+		tc.updating = true
+		go c.refreshTreasuryChart()
+	}
+	tc.Unlock()
+
+	if data == nil {
+		http.Error(w, "treasury chart is being prepared, try again shortly", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data) //nolint:errcheck
+}
+
+func (c *appContext) refreshTreasuryChart() {
+	data, err := c.buildTreasuryChart(context.Background())
+	c.treasuryChart.Lock()
+	defer c.treasuryChart.Unlock()
+	c.treasuryChart.updating = false
+	if err != nil {
+		apiLog.Errorf("buildTreasuryChart failed: %v", err)
+		return
+	}
+	c.treasuryChart.json = data
+	c.treasuryChart.at = time.Now()
+}
+
+// buildTreasuryChart computes the combined (decentralized + legacy) treasury
+// balance over time at monthly resolution. The decentralized account jumps when
+// the legacy treasury was migrated into it (early 2022); adding the legacy
+// balance, which falls by the same amount, yields a smooth total.
+func (c *appContext) buildTreasuryChart(ctx context.Context) ([]byte, error) {
+	devAddr, err := dbtypes.DevSubsidyAddress(c.Params)
+	if err != nil {
+		return nil, fmt.Errorf("DevSubsidyAddress: %w", err)
+	}
+	legacy, err := c.DataSource.TxHistoryData(ctx, devAddr, dbtypes.AmountFlow, dbtypes.MonthGrouping)
+	if err != nil {
+		return nil, fmt.Errorf("legacy TxHistoryData: %w", err)
+	}
+	dec, err := c.DataSource.BinnedTreasuryIO(ctx, dbtypes.MonthGrouping)
+	if err != nil {
+		return nil, fmt.Errorf("BinnedTreasuryIO: %w", err)
+	}
+
+	legacyBal := cumulativeBalance(legacy)
+	decBal := cumulativeBalance(dec)
+	if len(legacyBal) == 0 && len(decBal) == 0 {
+		return nil, fmt.Errorf("no treasury data")
+	}
+
+	// Merge the two running-balance series onto the sorted union of their
+	// timestamps, carrying each series' last known balance forward (an as-of
+	// join), and sum.
+	times := mergeBalanceTimes(legacyBal, decBal)
+	out := struct {
+		T       []int64   `json:"t"`
+		Balance []float64 `json:"balance"`
+	}{
+		T:       make([]int64, len(times)),
+		Balance: make([]float64, len(times)),
+	}
+	var li, di int
+	var lv, dv float64
+	for i, t := range times {
+		for li < len(legacyBal) && legacyBal[li].t <= t {
+			lv = legacyBal[li].v
+			li++
+		}
+		for di < len(decBal) && decBal[di].t <= t {
+			dv = decBal[di].v
+			di++
+		}
+		out.T[i] = t
+		out.Balance[i] = lv + dv
+	}
+	return json.Marshal(out)
+}
+
+// cumulativeBalance turns a received/sent time series (DCR) into a running
+// balance, ordered by time. Subtracting in float space avoids the unsigned
+// underflow that received-sent would hit in spend-heavy periods.
+func cumulativeBalance(cd *dbtypes.ChartsData) []balPoint {
+	if cd == nil {
+		return nil
+	}
+	n := len(cd.Time)
+	if len(cd.Received) < n {
+		n = len(cd.Received)
+	}
+	if len(cd.Sent) < n {
+		n = len(cd.Sent)
+	}
+	pts := make([]balPoint, 0, n)
+	var bal float64
+	for i := 0; i < n; i++ {
+		bal += cd.Received[i] - cd.Sent[i]
+		pts = append(pts, balPoint{t: cd.Time[i].UNIX(), v: bal})
+	}
+	return pts
+}
+
+// mergeBalanceTimes returns the sorted union of two balance series' timestamps.
+func mergeBalanceTimes(a, b []balPoint) []int64 {
+	seen := make(map[int64]struct{}, len(a)+len(b))
+	for _, p := range a {
+		seen[p.t] = struct{}{}
+	}
+	for _, p := range b {
+		seen[p.t] = struct{}{}
+	}
+	times := make([]int64, 0, len(seen))
+	for t := range seen {
+		times = append(times, t)
+	}
+	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
+	return times
 }
 
 func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
