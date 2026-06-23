@@ -22,16 +22,18 @@
       </div>
 
       <div class="stat-grid">
-        <div class="card stat"><div class="k">Coin Supply</div><div class="v">{{threeSigFigs $.SupplyDCR}}</div><div class="sub">DCR · {{printf "%.1f" $.SupplyPct}}% mined</div>
-          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/coin-supply?bin=day&axis=time" data-chart-ykey-value="supply" data-chart-color-value="#2ED6A1"></div></div>
-        <div class="card stat"><div class="k">Hashrate</div><div class="v">{{threeSigFigs .HashRate}}</div><div class="sub">Ph/s</div>
-          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/hashrate?bin=day&axis=time" data-chart-ykey-value="rate" data-chart-color-value="#36C5E0"></div></div>
-        <div class="card stat"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div>
-          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/ticket-price?bin=window&axis=time" data-chart-ykey-value="price" data-chart-color-value="#5BA8FF"></div></div>
-        <div class="card stat"><div class="k">Difficulty</div><div class="v">{{threeSigFigs .Difficulty}}</div><div class="sub">network</div>
-          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/pow-difficulty?bin=window&axis=time" data-chart-ykey-value="diff" data-chart-color-value="#9B8CFF"></div></div>
-        <div class="card stat"><div class="k">Staked</div><div class="v">{{printf "%.1f" $.StakePct}}%</div><div class="sub">of circulating supply</div></div>
-        <div class="card stat"><div class="k">Treasury</div><div class="v">{{threeSigFigs $.TreasuryDCR}}</div><div class="sub">DCR</div></div>
+        <a class="card stat" href="/charts/coin-supply"><div class="k">Coin Supply</div><div class="v">{{threeSigFigs $.SupplyDCR}}</div><div class="sub">DCR · {{printf "%.1f" $.SupplyPct}}% mined</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/coin-supply?bin=day&axis=time" data-chart-ykey-value="supply" data-chart-color-value="#2ED6A1"></div></a>
+        <a class="card stat" href="/charts/hashrate"><div class="k">Hashrate</div><div class="v">{{threeSigFigs .HashRate}}</div><div class="sub">Ph/s</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/hashrate?bin=day&axis=time" data-chart-ykey-value="rate" data-chart-color-value="#36C5E0"></div></a>
+        <a class="card stat" href="/charts/ticket-price"><div class="k">Ticket Price</div><div class="v">{{threeSigFigs .StakeDiff}}</div><div class="sub">DCR</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/ticket-price?bin=window&axis=time" data-chart-ykey-value="price" data-chart-color-value="#5BA8FF"></div></a>
+        <a class="card stat" href="/charts/pow-difficulty"><div class="k">Difficulty</div><div class="v">{{threeSigFigs .Difficulty}}</div><div class="sub">network</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/pow-difficulty?bin=window&axis=time" data-chart-ykey-value="diff" data-chart-color-value="#9B8CFF"></div></a>
+        <a class="card stat" href="/charts/stake-participation"><div class="k">Staked</div><div class="v">{{printf "%.1f" $.StakePct}}%</div><div class="sub">of circulating supply</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/chart/stake-participation?bin=day&axis=time" data-chart-ykey-value="poolval" data-chart-ratio-value="circulation" data-chart-color-value="#9B8CFF"></div></a>
+        <a class="card stat" href="/governance"><div class="k">Treasury</div><div class="v">{{threeSigFigs $.TreasuryDCR}}</div><div class="sub">DCR</div>
+          <div class="spark" data-controller="chart" data-chart-kind-value="sparkline" data-chart-url-value="/api/treasury/chart" data-chart-ykey-value="balance" data-chart-color-value="#F5A623"></div></a>
       </div>
 
       <div class="dash-2col">

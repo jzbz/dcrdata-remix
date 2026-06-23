@@ -2046,6 +2046,10 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 		log.Warnf(`Error fetching chart %q at bin level '%s': %v`, chartType, bin, err)
 		return
 	}
+	// These series change at most once per block; let browsers (and a CDN, if
+	// configured to cache /api) reuse the response briefly to ease the load of
+	// the many-chart overview page.
+	w.Header().Set("Cache-Control", "public, max-age=120")
 	writeJSONBytes(w, chartData)
 }
 

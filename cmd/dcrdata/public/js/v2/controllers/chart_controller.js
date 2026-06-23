@@ -21,7 +21,17 @@ export default class extends Controller {
     if (this.pointsValue) {
       this.draw(JSON.parse(this.pointsValue))
     } else if (this.hasUrlValue) {
-      this.fetchAndDraw()
+      // Lazy-load: only fetch once the chart nears the viewport. The charts
+      // page renders many large series; fetching them all at once is slow, so
+      // off-screen charts wait until scrolled toward.
+      this.lazyObserver = new IntersectionObserver((entries) => {
+        if (entries.some(e => e.isIntersecting)) {
+          this.lazyObserver.disconnect()
+          this.lazyObserver = null
+          this.fetchAndDraw()
+        }
+      }, { rootMargin: '300px' })
+      this.lazyObserver.observe(this.element)
     }
     // The draw-in dash length is measured in rendered pixels, so it must be
     // re-measured when the container resizes or the line re-breaks (see
@@ -38,6 +48,10 @@ export default class extends Controller {
   disconnect () {
     cancelAnimationFrame(this.redrawFrame)
     clearTimeout(this.retryTimer)
+    if (this.lazyObserver) {
+      this.lazyObserver.disconnect()
+      this.lazyObserver = null
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null
