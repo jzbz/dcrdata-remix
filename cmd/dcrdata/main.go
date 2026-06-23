@@ -800,6 +800,7 @@ func _main(ctx context.Context) error {
 		withCache.Get("/disapproved", explore.DisapprovedBlocks)
 		withCache.Get("/mempool", explore.Mempool)
 		withCache.Get("/charts", explore.Charts)
+		withCache.Get("/charts/{chartType}", explore.ChartDetail)
 		withCache.Get("/treasury", explore.TreasuryPage)
 		withCache.Get("/parameters", explore.ParametersPage)
 		withCache.Get("/agendas", explore.AgendasPage)

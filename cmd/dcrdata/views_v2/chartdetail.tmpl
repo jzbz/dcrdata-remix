@@ -1,0 +1,41 @@
+{{define "chartdetail" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "v2-head" (dict "Title" (printf "%s · Charts" .Meta.Title) "Data" .)}}
+<body data-controller="theme">
+<div class="app">
+  {{template "v2-sidebar" .}}
+  <div class="main">
+    {{template "v2-topbar" .}}
+    <main class="content">
+      <div class="page-head">
+        <p class="eyebrow"><a class="link" href="/charts">Charts</a> · {{.Meta.Title}}</p>
+        <h1>{{.Meta.Title}}</h1>
+      </div>
+
+      <div class="card cd" data-controller="chart-detail"
+           data-chart-detail-type-value="{{.ChartType}}"
+           data-chart-detail-ykey-value="{{.Meta.YKey}}"
+           data-chart-detail-ratio-value="{{.Meta.Ratio}}"
+           data-chart-detail-bin-value="{{.Meta.Bin}}"
+           data-chart-detail-color-value="{{.Meta.Color}}"
+           data-chart-detail-unit-value="{{.Meta.Unit}}"
+           data-chart-detail-scale-value="{{.Meta.Scale}}">
+        <div class="cd-toolbar">
+          <span class="cd-toolbar-label">Range</span>
+          <div class="bin-group">
+            <button class="cd-range active" data-range="0" data-chart-detail-target="range" data-action="chart-detail#setRange">All</button>
+            <button class="cd-range" data-range="1" data-chart-detail-target="range" data-action="chart-detail#setRange">1Y</button>
+            <button class="cd-range" data-range="2" data-chart-detail-target="range" data-action="chart-detail#setRange">90D</button>
+            <button class="cd-range" data-range="3" data-chart-detail-target="range" data-action="chart-detail#setRange">30D</button>
+          </div>
+        </div>
+        <div class="cd-plot" data-chart-detail-target="plot"></div>
+        <div class="cd-tip" data-chart-detail-target="tip"></div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

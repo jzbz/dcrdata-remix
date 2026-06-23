@@ -461,6 +461,30 @@
   .donut { width: auto; height: 100%; max-width: 100%; display: block; margin-inline: auto; }
   @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
 
+  /* Overview chart cards link to their interactive detail page. */
+  a.chart-card { display: block; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+  a.chart-card:hover { border-color: var(--turquoise); transform: translateY(-2px); }
+
+  /* Interactive single-chart detail view (/charts/{type}). */
+  .cd { position: relative; padding: var(--sp-5); }
+  .cd-toolbar { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cd-toolbar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .cd-plot { position: relative; width: 100%; height: 400px; }
+  .cd-svg { display: block; width: 100%; height: 100%; }
+  .cd-grid { stroke: var(--border-subtle); stroke-width: 1; }
+  .cd-ylabel, .cd-xlabel { fill: var(--dim); font-size: 11px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .cd-crosshair { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+  .cd-dot { stroke: var(--bg); stroke-width: 2; }
+  .cd-tip {
+    position: absolute; display: none; pointer-events: none; z-index: 5;
+    padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: color-mix(in srgb, var(--card) 88%, transparent);
+    backdrop-filter: blur(8px); font-size: 12px; line-height: 1.45; white-space: nowrap;
+  }
+  .cd-tip-date { display: block; color: var(--muted); }
+  .cd-tip-val { display: block; font-family: var(--font-mono); font-weight: 600; color: var(--text); }
+  @media (max-width: 760px) { .cd-plot { height: 300px; } }
+
   /* Governance proposal cards + vote bars. */
   .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--gap); }
   .prop-card { padding: var(--sp-4) var(--sp-5); }

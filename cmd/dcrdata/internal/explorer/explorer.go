@@ -390,7 +390,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	// the chrome (head/sidebar/topbar) defined in views_v2/chrome.tmpl, and are
 	// fed the same data structs the legacy pages used.
 	exp.templates = newTemplates(v2Folder, cfg.ReloadHTML, []string{"chrome"}, funcMap)
-	for _, name := range []string{"dashboard", "blocks", "block", "tx", "address", "charts", "staking", "governance", "sidechains", "disapproved", "windows", "timelisting", "mempool", "ticketpool", "parameters", "agendas", "agenda", "proposals", "proposal", "treasury", "verify_message", "insight_root", "status", "rawtx", "attackcost", "visualblocks", "market"} {
+	for _, name := range []string{"dashboard", "blocks", "block", "tx", "address", "charts", "chartdetail", "staking", "governance", "sidechains", "disapproved", "windows", "timelisting", "mempool", "ticketpool", "parameters", "agendas", "agenda", "proposals", "proposal", "treasury", "verify_message", "insight_root", "status", "rawtx", "attackcost", "visualblocks", "market"} {
 		if err := exp.templates.addTemplate(name); err != nil {
 			log.Errorf("Unable to create html template %q: %v", name, err)
 			return nil

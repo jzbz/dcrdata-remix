@@ -13,7 +13,8 @@ export default class extends Controller {
     kind: { type: String, default: 'area' }, // area | sparkline | donut
     points: String, // inline JSON array, overrides url
     max: Number, // for donut
-    accumulate: Boolean // running-sum the series before drawing (e.g. per-period flows -> balance)
+    accumulate: Boolean, // running-sum the series before drawing (e.g. per-period flows -> balance)
+    ratio: String // optional: divide ykey by this key elementwise (e.g. poolval / circulation)
   }
 
   connect () {
@@ -49,6 +50,10 @@ export default class extends Controller {
       if (!resp.ok) throw new Error(resp.status)
       const data = await resp.json()
       let ys = ((this.ykeyValue && data[this.ykeyValue]) || []).map(Number)
+      if (this.ratioValue) {
+        const den = (data[this.ratioValue] || []).map(Number)
+        ys = ys.map((v, i) => (den[i] ? v / den[i] : 0))
+      }
       if (this.accumulateValue) {
         let sum = 0
         ys = ys.map(v => (sum += v))

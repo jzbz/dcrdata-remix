@@ -14,7 +14,7 @@ const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v)
 // overshoots its endpoints; without this, spiky series sprout phantom peaks and
 // dip below the baseline, which makes the area fill self-intersect into visible
 // gaps.
-function smoothPath (pts) {
+export function smoothPath (pts) {
   if (!pts.length) return ''
   if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`
   let d = `M${pts[0].x.toFixed(2)},${pts[0].y.toFixed(2)}`
@@ -39,7 +39,7 @@ function smoothPath (pts) {
 // hundred pixels of width; drawing them all turns real volatility into
 // unreadable spline noise, so we average down to about the pixel resolution for
 // a clean trend line. Returns the input unchanged when it already fits.
-function downsample (values, target) {
+export function downsample (values, target) {
   const n = values.length
   if (!target || n <= target) return values
   const out = new Array(target)

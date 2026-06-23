@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
@@ -1861,6 +1862,62 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exp.renderPage(w, exp.templates, "charts", pageData)
+}
+
+// chartDetailMeta describes how a single chart's API series maps to the
+// interactive detail view: which y-key to read, the bin to request, display
+// color, unit label, and a scale factor (e.g. 1e-8 to convert atoms to DCR).
+type chartDetailMeta struct {
+	Title string
+	YKey  string
+	Ratio string // optional second key; the series is YKey/Ratio (e.g. % staked)
+	Bin   string
+	Color string
+	Unit  string
+	Scale float64
+}
+
+// chartDetailMetas covers every chart type the detail page can render. The page
+// is served only for keys present here.
+var chartDetailMetas = map[string]chartDetailMeta{
+	"coin-supply":           {"Coin Supply", "supply", "", "day", "#2ED6A1", "DCR", 1e-8},
+	"hashrate":              {"Hashrate", "rate", "", "day", "#36C5E0", "", 1},
+	"tx-count":              {"Transaction Count", "count", "", "day", "#9B8CFF", "", 1},
+	"fees":                  {"Fees", "fees", "", "day", "#F5A623", "DCR", 1e-8},
+	"ticket-price":          {"Ticket Price", "price", "", "window", "#5BA8FF", "DCR", 1e-8},
+	"pow-difficulty":        {"PoW Difficulty", "diff", "", "window", "#5BA8FF", "", 1},
+	"duration-btw-blocks":   {"Block Time", "duration", "", "day", "#36C5E0", "s", 1},
+	"privacy-participation": {"Privacy Participation", "anonymitySet", "", "day", "#2ED6A1", "DCR", 1e-8},
+	"block-size":            {"Block Size", "size", "", "day", "#9B8CFF", "bytes", 1},
+	"blockchain-size":       {"Blockchain Size", "size", "", "day", "#9B8CFF", "bytes", 1},
+	"chainwork":             {"Chainwork", "work", "", "day", "#5BA8FF", "", 1},
+	"ticket-pool-size":      {"Ticket Pool Size", "count", "", "day", "#5BA8FF", "tickets", 1},
+	"ticket-pool-value":     {"Ticket Pool Value", "poolval", "", "day", "#5BA8FF", "DCR", 1e-8},
+	"missed-votes":          {"Missed Votes", "missed", "", "window", "#F5A623", "votes", 1},
+	"stake-participation":   {"Staked Supply", "poolval", "circulation", "day", "#2ED6A1", "%", 100},
+}
+
+// ChartDetail is the page handler for "/charts/{chartType}", a large
+// interactive view of a single chart.
+func (exp *explorerUI) ChartDetail(w http.ResponseWriter, r *http.Request) {
+	chartType := chi.URLParam(r, "chartType")
+	meta, ok := chartDetailMetas[chartType]
+	if !ok {
+		exp.StatusPage(w, "Unknown chart", "No such chart is available.", "", ExpStatusNotFound)
+		return
+	}
+
+	pageData := struct {
+		*CommonPageData
+		ChartType string
+		Meta      chartDetailMeta
+	}{
+		CommonPageData: exp.commonData(r),
+		ChartType:      chartType,
+		Meta:           meta,
+	}
+
+	exp.renderPage(w, exp.templates, "chartdetail", pageData)
 }
 
 // Search implements a primitive search algorithm by checking if the value in
