@@ -547,6 +547,9 @@ func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 			PercentTarget: 100 * float64(blockData.PoolInfo.Size) / float64(tpTarget),
 			Target:        tpTarget,
 		}
+		// Total DCR locked in the live ticket pool, used by the v2 dashboard and
+		// staking pages to show staked supply.
+		p.HomeInfo.TotalLockedDCR = blockData.PoolInfo.Value
 	}
 
 	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
