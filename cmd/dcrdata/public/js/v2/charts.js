@@ -6,8 +6,14 @@
 
 let uid = 0
 
+const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v)
+
 // smoothPath builds a cubic-bezier "d" through points using Catmull-Rom control
-// points, giving organic curves without a charting dependency.
+// points, giving organic curves without a charting dependency. The control
+// points are clamped to each segment's bounding box so the spline never
+// overshoots its endpoints; without this, spiky series sprout phantom peaks and
+// dip below the baseline, which makes the area fill self-intersect into visible
+// gaps.
 function smoothPath (pts) {
   if (!pts.length) return ''
   if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`
@@ -17,13 +23,34 @@ function smoothPath (pts) {
     const p1 = pts[i]
     const p2 = pts[i + 1]
     const p3 = pts[i + 2] || p2
-    const c1x = p1.x + (p2.x - p0.x) / 6
-    const c1y = p1.y + (p2.y - p0.y) / 6
-    const c2x = p2.x - (p3.x - p1.x) / 6
-    const c2y = p2.y - (p3.y - p1.y) / 6
+    const loY = Math.min(p1.y, p2.y)
+    const hiY = Math.max(p1.y, p2.y)
+    const c1x = clamp(p1.x + (p2.x - p0.x) / 6, p1.x, p2.x)
+    const c1y = clamp(p1.y + (p2.y - p0.y) / 6, loY, hiY)
+    const c2x = clamp(p2.x - (p3.x - p1.x) / 6, p1.x, p2.x)
+    const c2y = clamp(p2.y - (p3.y - p1.y) / 6, loY, hiY)
     d += `C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`
   }
   return d
+}
+
+// downsample reduces a dense series to roughly `target` points by averaging
+// equal-width buckets. The history charts return thousands of points for a few
+// hundred pixels of width; drawing them all turns real volatility into
+// unreadable spline noise, so we average down to about the pixel resolution for
+// a clean trend line. Returns the input unchanged when it already fits.
+function downsample (values, target) {
+  const n = values.length
+  if (!target || n <= target) return values
+  const out = new Array(target)
+  for (let i = 0; i < target; i++) {
+    const start = Math.floor((i * n) / target)
+    const end = Math.max(start + 1, Math.floor(((i + 1) * n) / target))
+    let sum = 0
+    for (let j = start; j < end; j++) sum += values[j]
+    out[i] = sum / (end - start)
+  }
+  return out
 }
 
 function scale (values, w, h, pad) {
@@ -43,7 +70,7 @@ function scale (values, w, h, pad) {
 export function areaChart (values, opts = {}) {
   const { color = '#2ED6A1', height = 90, width = 320, pad = 6 } = opts
   if (!values || values.length < 2) return '<div class="chart-empty">no data</div>'
-  const pts = scale(values, width, height, pad)
+  const pts = scale(downsample(values, width), width, height, pad)
   const line = smoothPath(pts)
   const area = `${line} L${width.toFixed(2)},${height} L0,${height} Z`
   const id = `cg${++uid}`
