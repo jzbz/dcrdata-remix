@@ -2046,11 +2046,84 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 		log.Warnf(`Error fetching chart %q at bin level '%s': %v`, chartType, bin, err)
 		return
 	}
+	// Optional ?max=N downsamples the series server-side so preview/overview
+	// charts don't ship full history (which is large and slow to transfer). The
+	// detail view omits max to keep full resolution for its range presets.
+	if maxStr := r.URL.Query().Get("max"); maxStr != "" {
+		if maxPoints, perr := strconv.Atoi(maxStr); perr == nil && maxPoints >= 2 {
+			if ds, derr := downsampleChartJSON(chartData, maxPoints); derr == nil {
+				chartData = ds
+			}
+		}
+	}
 	// These series change at most once per block; let browsers (and a CDN, if
 	// configured to cache /api) reuse the response briefly to ease the load of
 	// the many-chart overview page.
 	w.Header().Set("Cache-Control", "public, max-age=120")
 	writeJSONBytes(w, chartData)
+}
+
+// downsampleChartJSON reduces every equal-length numeric array in a chart
+// response (e.g. t, supply, rate) to at most maxPoints by averaging equal-width
+// buckets, keeping the arrays aligned. Scalar metadata fields (bin, axis,
+// window, offset) are left untouched. The input is returned unchanged if it
+// can't be parsed or already fits.
+func downsampleChartJSON(data []byte, maxPoints int) ([]byte, error) {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return data, nil
+	}
+	arrays := make(map[string][]float64)
+	seriesLen := 0
+	for k, raw := range obj {
+		if len(raw) == 0 || raw[0] != '[' {
+			continue // scalar metadata, not an array
+		}
+		var vals []float64
+		if err := json.Unmarshal(raw, &vals); err != nil || len(vals) == 0 {
+			continue
+		}
+		arrays[k] = vals
+		if len(vals) > seriesLen {
+			seriesLen = len(vals)
+		}
+	}
+	if seriesLen <= maxPoints || len(arrays) == 0 {
+		return data, nil
+	}
+	for k, vals := range arrays {
+		if len(vals) != seriesLen {
+			continue // keep any out-of-step aux array as-is to avoid misalignment
+		}
+		b, err := json.Marshal(bucketAverage(vals, maxPoints))
+		if err != nil {
+			return data, nil
+		}
+		obj[k] = b
+	}
+	return json.Marshal(obj)
+}
+
+// bucketAverage reduces vals to target points by averaging equal-width buckets.
+func bucketAverage(vals []float64, target int) []float64 {
+	n := len(vals)
+	if target <= 0 || n <= target {
+		return vals
+	}
+	out := make([]float64, target)
+	for i := 0; i < target; i++ {
+		start := i * n / target
+		end := (i + 1) * n / target
+		if end <= start {
+			end = start + 1
+		}
+		var sum float64
+		for j := start; j < end; j++ {
+			sum += vals[j]
+		}
+		out[i] = sum / float64(end-start)
+	}
+	return out
 }
 
 // route: /market/{token}/candlestick/{bin}

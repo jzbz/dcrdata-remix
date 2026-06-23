@@ -61,7 +61,15 @@ export default class extends Controller {
   async fetchAndDraw (attempt = 0) {
     if (attempt === 0) this.element.innerHTML = '<div class="chart-empty">loading…</div>'
     try {
-      const resp = await fetch(this.urlValue, { headers: { Accept: 'application/json' } })
+      // Request a size-matched downsample so these preview charts don't pull
+      // full history. Quantized to 100s for cache friendliness; the chart API
+      // ignores ?max when it can't downsample. The interactive detail view uses
+      // a different controller and keeps full resolution.
+      const px = this.element.clientWidth || 300
+      const maxPoints = Math.min(1000, Math.max(200, Math.round((px * 1.5) / 100) * 100))
+      const url = new URL(this.urlValue, window.location.origin)
+      url.searchParams.set('max', String(maxPoints))
+      const resp = await fetch(url, { headers: { Accept: 'application/json' } })
       // Some series (e.g. the combined treasury chart) are built lazily and
       // return 503 until ready; poll briefly so the chart fills in on its own.
       if (resp.status === 503 && attempt < 12) {
