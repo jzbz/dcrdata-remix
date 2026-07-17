@@ -19,9 +19,14 @@
       </div>
 
       <div class="stat-grid">
-        <div class="card stat"><div class="k">Balance</div><div class="v">{{threeSigFigs .AmountUnspent.ToCoin}}</div><div class="sub">DCR</div></div>
-        <div class="card stat"><div class="k">Received</div><div class="v">{{threeSigFigs .AmountReceived.ToCoin}}</div><div class="sub">DCR</div></div>
-        <div class="card stat"><div class="k">Sent</div><div class="v">{{threeSigFigs .AmountSent.ToCoin}}</div><div class="sub">DCR</div></div>
+        {{- /* Use the full-history Balance totals, not the page-scoped
+        AmountReceived/AmountSent/AmountUnspent sums from ReduceAddressHistory,
+        which only cover the transactions on the current page. */ -}}
+        {{with .Balance}}
+        <div class="card stat"><div class="k">Balance</div><div class="v">{{threeSigFigs (toFloat64Amount .TotalUnspent)}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Received</div><div class="v">{{threeSigFigs (toFloat64Amount (add .TotalSpent .TotalUnspent))}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Sent</div><div class="v">{{threeSigFigs (toFloat64Amount .TotalSpent)}}</div><div class="sub">DCR</div></div>
+        {{end}}
         <div class="card stat"><div class="k">Transactions</div><div class="v">{{intComma .TxnCount}}</div></div>
         {{if .Balance}}<div class="card stat"><div class="k">Unspent Outputs</div><div class="v">{{intComma .Balance.NumUnspent}}</div></div>{{end}}
       </div>
