@@ -5,10 +5,13 @@ import { Controller } from '@hotwired/stimulus'
 
 export default class extends Controller {
   copy (event) {
-    const text = event.currentTarget.dataset.clipboardText
+    // Capture the element synchronously: currentTarget is nulled once event
+    // dispatch completes, so reading it inside the promise callback throws
+    // and the confirmation never shows.
+    const el = event.currentTarget
+    const text = el.dataset.clipboardText
     if (!text) return
     navigator.clipboard?.writeText(text).then(() => {
-      const el = event.currentTarget
       const prev = el.textContent
       el.textContent = 'copied ✓'
       setTimeout(() => { el.textContent = prev }, 1100)

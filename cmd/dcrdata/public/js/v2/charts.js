@@ -58,7 +58,15 @@ function scale (values, w, h, pad) {
   let min = Infinity
   let max = -Infinity
   for (const v of values) { if (v < min) min = v; if (v > max) max = v }
-  const range = (max - min) || 1
+  if (max === min) {
+    // A constant series has no vertical information: draw it mid-height
+    // instead of collapsing onto the bottom edge, which reads as broken.
+    return values.map((v, i) => ({
+      x: n === 1 ? w / 2 : (i / (n - 1)) * w,
+      y: h / 2
+    }))
+  }
+  const range = max - min
   return values.map((v, i) => ({
     x: n === 1 ? w / 2 : (i / (n - 1)) * w,
     y: h - pad - ((v - min) / range) * (h - pad * 2)

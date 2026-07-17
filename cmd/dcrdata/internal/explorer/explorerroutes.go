@@ -88,9 +88,11 @@ func v2NavKey(path string) string {
 		return "address"
 	case strings.Contains(path, "/charts"):
 		return "charts"
-	case strings.Contains(path, "/staking"):
+	case strings.Contains(path, "/staking"), strings.Contains(path, "/ticketpool"),
+		strings.Contains(path, "/ticketpricewindows"):
 		return "staking"
-	case strings.Contains(path, "/governance"):
+	case strings.Contains(path, "/governance"), strings.Contains(path, "/proposal"),
+		strings.Contains(path, "/agenda"), strings.Contains(path, "/treasury"):
 		return "governance"
 	default:
 		return "dashboard"
@@ -1880,6 +1882,10 @@ func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
 			for _, p := range props {
 				page.Proposals = append(page.Proposals, govProposal{ProposalRecord: p, Meta: p.Metadata(tip, target)})
 			}
+		} else {
+			// Render the page without proposals, but leave a trace: a silent
+			// empty section reads as "no proposals exist".
+			log.Errorf("GovernanceV2: ProposalsAll failed: %v", err)
 		}
 	}
 	exp.renderPage(w, exp.templates, "governance", page)

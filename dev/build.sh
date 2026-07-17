@@ -48,32 +48,30 @@ go build -v
 
 echo "Gzipping assets for use with gzip_static..."
 find ./public -type f -name "*.gz" -execdir rm {} \;
+# The find arguments live in an array: a quoted string expansion would keep
+# literal quote characters in the -name patterns, so the exclusions would
+# never match and every binary asset would be recompressed each build.
+FINDARGS=(./public -type f -not -name '*.gz' -not -name '*.scss' -not -name '*.png' -not -name '*.woff2')
 # Use GNU parallel if it is installed.
-FINDCMD='find ./public -type f -not -name "*.gz" -not -name "*.scss" -not -name "*.png" -not -name "*.woff2"'
 if [ -x "$(command -v parallel)" ]; then
     if [ -x "$(command -v 7za)" ]; then
-        $FINDCMD | parallel --will-cite --bar 7za a -tgzip -mx=9 -mpass=13 {}.gz {} > /dev/null
+        find "${FINDARGS[@]}" | parallel --will-cite --bar 7za a -tgzip -mx=9 -mpass=13 {}.gz {} > /dev/null
     else
-        $FINDCMD | parallel --will-cite --bar gzip -k9f {} > /dev/null
+        find "${FINDARGS[@]}" | parallel --will-cite --bar gzip -k9f {} > /dev/null
     fi
 elif [ -x "$(command -v 7za)" ]; then
-    $FINDCMD -execdir 7za a -tgzip -mx=9 -mpass=13 {}.gz {} \; > /dev/null    
+    find "${FINDARGS[@]}" -execdir 7za a -tgzip -mx=9 -mpass=13 {}.gz {} \; > /dev/null
 else
-    $FINDCMD -execdir gzip -k9f {} \; > /dev/null
+    find "${FINDARGS[@]}" -execdir gzip -k9f {} \; > /dev/null
 fi
-
-# Clean up incompressible and files not part of the distribution.
-find ./public -type f -name "*.png.gz" -execdir rm {} \;
-find ./public -type f -name "*.scss.gz" -execdir rm {} \;
-find ./public -type f -name "*.woff2.gz" -execdir rm {} \;
-find ./public -type f -name "*.gz.gz" -execdir rm {} \;
 
 DEST=$2
 
 if [[ -n "$DEST" ]]; then
-    sudo install -m 754 -o dcrdata -g decred ./dcrdata ${DEST}/
-    sudo rm -rf ${DEST}/views_v2 ${DEST}/public
-    sudo cp -R views_v2 public ${DEST}/
+    # deploy.sh provisions user and group "dcrdata"; no "decred" group exists.
+    sudo install -m 754 -o dcrdata -g dcrdata ./dcrdata "${DEST}/"
+    sudo rm -rf "${DEST}/views_v2" "${DEST}/public"
+    sudo cp -R views_v2 public "${DEST}/"
 fi
 
 popd > /dev/null

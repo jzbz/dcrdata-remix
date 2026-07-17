@@ -43,9 +43,14 @@ func (a *AssetManager) URL(p string) string {
 	}
 
 	v = a.hash(p)
-	a.mu.Lock()
-	a.ver[p] = v
-	a.mu.Unlock()
+	// Don't cache a failed hash: a transient read error (e.g. a file mid-swap
+	// during deploy) would otherwise pin the unstamped URL for the process
+	// lifetime, disabling cache busting until a restart. Retry next request.
+	if v != "" {
+		a.mu.Lock()
+		a.ver[p] = v
+		a.mu.Unlock()
+	}
 	return urlFor(p, v)
 }
 

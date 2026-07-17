@@ -14,7 +14,13 @@ export default class extends Controller {
   connect () {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
     this.start = null
-    requestAnimationFrame(this.step)
+    this.rafId = requestAnimationFrame(this.step)
+  }
+
+  disconnect () {
+    // Stop the animation chain: orphaned frames would keep writing into a
+    // detached element, and a quick reconnect would run two competing chains.
+    cancelAnimationFrame(this.rafId)
   }
 
   step = (now) => {
@@ -25,6 +31,6 @@ export default class extends Controller {
       minimumFractionDigits: this.decimalsValue,
       maximumFractionDigits: this.decimalsValue
     })
-    if (t < 1) requestAnimationFrame(this.step)
+    if (t < 1) this.rafId = requestAnimationFrame(this.step)
   }
 }

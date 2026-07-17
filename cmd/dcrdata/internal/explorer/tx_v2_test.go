@@ -26,7 +26,8 @@ func TestV2TxTemplateRenders(t *testing.T) {
 	}
 
 	page := &txPage{
-		CommonPageData: tdCommon(),
+		CommonPageData:       tdCommon(),
+		IsConfirmedMainchain: true,
 		Data: &types.TxInfo{
 			TxBasic: &types.TxBasic{
 				TxID: "9c0d1e2f3a4b5c6d7e8f90a1b2c3d4e5", Type: "Regular",
@@ -64,5 +65,22 @@ func TestV2TxTemplateRenders(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 tx page missing %q", want)
 		}
+	}
+	if strings.Contains(out, "In side chain") {
+		t.Error("confirmed mainchain tx shows the side-chain warning")
+	}
+
+	// A mined tx whose block is not mainchain (or was stakeholder-invalidated)
+	// must not render the green Confirmed badge.
+	page.IsConfirmedMainchain = false
+	out, err = tm.exec("tx", page)
+	if err != nil {
+		t.Fatalf("exec(tx) side-chain: %v", err)
+	}
+	if !strings.Contains(out, "In side chain / invalidated block") {
+		t.Error("side-chain tx missing the invalidated-block tag")
+	}
+	if strings.Contains(out, `<span class="badge">Confirmed</span>`) {
+		t.Error("side-chain tx shows the Confirmed badge")
 	}
 }

@@ -485,6 +485,10 @@ func (t *TimeDef) UnmarshalJSON(data []byte) error {
 	if t == nil {
 		return fmt.Errorf("TimeDef: UnmarshalJSON on nil pointer")
 	}
+	// Per the encoding/json contract, unmarshaling JSON null is a no-op.
+	if string(data) == "null" {
+		return nil
+	}
 	T, err := time.Parse(timeDefFmtJS, strings.Trim(string(data), `"`))
 	if err != nil {
 		return err
@@ -1102,8 +1106,9 @@ func (ds DeletionSummarySlice) Reduce() DeletionSummary {
 	return s
 }
 
-// VinTxPropertyARRAY is a slice of VinTxProperty structs that implements
-// sql.Scanner and driver.Valuer.
+// VinTxPropertyARRAY is a slice of VinTxProperty structs. It is a plain slice
+// with no sql.Scanner/driver.Valuer implementations — vins are inserted and
+// read per-field, so it cannot be passed directly as a SQL argument.
 type VinTxPropertyARRAY []VinTxProperty
 
 // func VinTxPropertyToJSONB(vin *VinTxProperty) (JSONB, error) {

@@ -10,10 +10,13 @@
     <main class="content">
       {{with .Data}}
       <div class="page-head">
-        <p class="eyebrow">Decred Mainnet · Transaction</p>
+        <p class="eyebrow">Decred {{$.NetName}} · Transaction</p>
         <h1 style="display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap">
           {{if .Type}}{{.Type}}{{else}}Transaction{{end}}
-          {{if gt .BlockHeight 0}}<span class="badge">Confirmed</span>{{else}}<span class="tag" data-kind="ticket">Unconfirmed</span>{{end}}
+          {{- /* A mined tx is only "Confirmed" when its block is mainchain and
+          stake-approved; a side-chain or disapproved block must not show a
+          green badge next to Confirmations 0. */ -}}
+          {{if $.IsConfirmedMainchain}}<span class="badge">Confirmed</span>{{else if gt .BlockHeight 0}}<span class="tag" data-kind="revoke">In side chain / invalidated block</span>{{else}}<span class="tag" data-kind="ticket">Unconfirmed</span>{{end}}
         </h1>
         <div class="hash" style="margin-top:var(--sp-3); color:var(--text-2)">
           <span class="text">{{.TxID}}</span>

@@ -8,7 +8,7 @@
   <div class="main">
     {{template "v2-topbar" .}}
     <main class="content">
-      <div class="page-head"><p class="eyebrow">Decred Mainnet</p><h1>PoS-invalidated blocks</h1></div>
+      <div class="page-head"><p class="eyebrow">Decred {{$.NetName}}</p><h1>PoS-invalidated blocks</h1></div>
       <p class="text-muted" style="margin-bottom:var(--sp-4)">Blocks whose regular transactions were invalidated by stakeholder votes.</p>
       {{if .Data}}
       <div class="panel"><div class="table-scroll">

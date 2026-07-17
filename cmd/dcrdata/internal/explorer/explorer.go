@@ -535,8 +535,11 @@ func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
 
-	// If BlockData contains non-nil PoolInfo, copy values.
+	// If BlockData contains non-nil PoolInfo, copy values. Reset both the pool
+	// info and the derived locked-DCR total so a block without pool data does
+	// not leave a stale TotalLockedDCR next to a zeroed PoolInfo.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
+	p.HomeInfo.TotalLockedDCR = 0
 	if blockData.PoolInfo != nil {
 		tpTarget := uint32(exp.ChainParams.TicketPoolSize) * uint32(exp.ChainParams.TicketsPerBlock)
 		p.HomeInfo.PoolInfo = types.TicketPoolInfo{

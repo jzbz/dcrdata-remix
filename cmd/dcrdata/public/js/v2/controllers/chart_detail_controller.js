@@ -92,11 +92,19 @@ export default class extends Controller {
   }
 
   render () {
-    if (!this.ts || this.ts.length < 2) return
+    // Show an explicit empty state rather than silently leaving the previous
+    // plot (or the "loading…" placeholder) behind the newly-active button.
+    if (!this.ts || this.ts.length < 2) {
+      this.plotTarget.innerHTML = '<div class="chart-empty">no data</div>'
+      return
+    }
     const i0 = this.sliceStart()
     const ts = this.ts.slice(i0)
     const ys = this.ys.slice(i0)
-    if (ts.length < 2) return
+    if (ts.length < 2) {
+      this.plotTarget.innerHTML = '<div class="chart-empty">no data in this range</div>'
+      return
+    }
 
     const W = Math.max(320, Math.round(this.plotTarget.clientWidth || 800))
     const H = Math.max(220, Math.round(this.plotTarget.clientHeight || 360))
@@ -231,7 +239,12 @@ function niceTicks (lo, hi, count) {
   const mag = Math.pow(10, Math.floor(Math.log10(raw)))
   const norm = raw / mag
   const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag
+  // Generate by index, not by accumulating v += step: if step ever falls
+  // below the float ULP of v the accumulator stops advancing and the loop
+  // never terminates. The cap bounds pathological ranges outright.
+  const first = Math.ceil(lo / step) * step
+  const n = Math.min(Math.floor((hi - first) / step + 1e-6) + 1, 20)
   const ticks = []
-  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) ticks.push(v)
+  for (let k = 0; k < n; k++) ticks.push(first + k * step)
   return ticks
 }

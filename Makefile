@@ -10,10 +10,11 @@ APP_DIR := cmd/dcrdata
 BIN     := dcrdata
 GOFLAGS ?=
 
-# Go modules in this repo. db/dcrpg's tests need a live PostgreSQL, so the
-# default `test` target covers just the app and core libraries; use `test-all`
-# to run every module.
-MODULES := . ./cmd/dcrdata ./db/dcrpg ./exchanges ./gov ./pubsub
+# Go modules in this repo, derived from the tracked go.mod files so none are
+# missed (pubsub has no module of its own — pubsub/democlient does). db/dcrpg's
+# tests need a live PostgreSQL, so the default `test` target covers just the
+# app and core libraries; use `test-all` to run every module.
+MODULES := $(sort $(dir $(shell git ls-files 'go.mod' '*/go.mod')))
 
 .DEFAULT_GOAL := help
 

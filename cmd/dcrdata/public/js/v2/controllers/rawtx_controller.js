@@ -21,17 +21,29 @@ export default class extends Controller {
   }
 
   open () {
+    // Tear down any previous socket first: the reconnect path in send() can
+    // otherwise stack live sockets whose stale close/error handlers stomp the
+    // status line after a new connection is already up.
+    if (this.ws) {
+      this.ws.removeEventListener('message', this.onMessage)
+      this.ws.onclose = null
+      this.ws.close()
+      this.ws = null
+    }
     const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
+    let ws
     try {
-      this.ws = new WebSocket(`${scheme}://${location.host}/ws`)
+      ws = new WebSocket(`${scheme}://${location.host}/ws`)
     } catch (e) {
       this.setStatus('Unable to open a websocket connection.')
       return
     }
-    this.ws.addEventListener('message', this.onMessage)
-    this.ws.addEventListener('open', () => this.setStatus(''))
-    this.ws.addEventListener('close', () => this.setStatus('Connection closed.'))
-    this.ws.addEventListener('error', () => this.setStatus('Connection error.'))
+    this.ws = ws
+    ws.addEventListener('message', this.onMessage)
+    // Guard each status update: only the current socket may speak.
+    ws.addEventListener('open', () => { if (this.ws === ws) this.setStatus('') })
+    ws.addEventListener('close', () => { if (this.ws === ws) this.setStatus('Connection closed.') })
+    ws.addEventListener('error', () => { if (this.ws === ws) this.setStatus('Connection error.') })
   }
 
   onMessage = (e) => {

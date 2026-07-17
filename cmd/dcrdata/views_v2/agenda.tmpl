@@ -10,7 +10,7 @@
     <main class="content">
       {{with .Ai}}
       <div class="page-head">
-        <p class="eyebrow">Decred Mainnet · Agenda</p>
+        <p class="eyebrow">Decred {{$.NetName}} · Agenda</p>
         <h1 style="display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap">{{.ID}} <span class="tag" data-kind="ticket">{{.Status.String}}</span></h1>
         <p class="text-muted" style="margin-top:var(--sp-2)">{{.Description}}</p>
       </div>

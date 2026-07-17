@@ -100,7 +100,7 @@
     <input name="search" placeholder="Search blocks, transactions, addresses…" autocomplete="off" spellcheck="false">
   </form>
   <div class="spacer"></div>
-  {{if gt .DCRPrice 0.0}}<div class="price">{{printf "$%.2f" .DCRPrice}} <span class="text-muted">{{.PriceIndex}}</span></div>{{end}}
+  {{if gt .DCRPrice 0.0}}<div class="price">{{if eq .PriceIndex "USD"}}${{end}}{{printf "%.2f" .DCRPrice}} <span class="text-muted">{{.PriceIndex}}</span></div>{{end}}
   <button class="icon-btn" type="button" data-action="theme#toggle" data-theme-target="glyph" aria-label="Toggle theme">☾</button>
 </div>
 {{end}}

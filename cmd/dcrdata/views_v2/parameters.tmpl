@@ -13,8 +13,11 @@
       <div class="panel"><div class="summary">
         <div class="kv"><span class="k">Network</span><span class="v">{{.ChainParams.Name}}</span></div>
         <div class="kv"><span class="k">Max Block Size</span><span class="v">{{intComma .MaximumBlockSize}} B</span></div>
-        <div class="kv"><span class="k">Target Pool Size</span><span class="v">{{intComma .ChainParams.TicketPoolSize}}</span></div>
-        <div class="kv"><span class="k">Actual Pool Size</span><span class="v">{{intComma .ActualTicketPoolSize}}</span></div>
+        {{- /* ActualTicketPoolSize is TicketPoolSize x TicketsPerBlock — the
+        effective target the rest of the UI calls "target" (40,960 mainnet) —
+        not the live pool count. Label both for what they are. */ -}}
+        <div class="kv"><span class="k">Ticket Pool Size (param)</span><span class="v">{{intComma .ChainParams.TicketPoolSize}}</span></div>
+        <div class="kv"><span class="k">Target Pool Size (×{{.ChainParams.TicketsPerBlock}}/block)</span><span class="v">{{intComma .ActualTicketPoolSize}}</span></div>
         <div class="kv"><span class="k">Tickets / Block</span><span class="v">{{.ChainParams.TicketsPerBlock}}</span></div>
         <div class="kv"><span class="k">Ticket Maturity</span><span class="v">{{intComma .ChainParams.TicketMaturity}}</span></div>
         <div class="kv"><span class="k">Coinbase Maturity</span><span class="v">{{intComma .ChainParams.CoinbaseMaturity}}</span></div>

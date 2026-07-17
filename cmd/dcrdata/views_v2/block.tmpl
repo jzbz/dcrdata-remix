@@ -11,7 +11,7 @@
       {{with .Data}}
       <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:var(--sp-3)">
         <div>
-          <p class="eyebrow">Decred Mainnet · Block</p>
+          <p class="eyebrow">Decred {{$.NetName}} · Block</p>
           <h1 style="display:flex; align-items:center; gap:var(--sp-3)">
             #{{.Height}}
             {{if .Valid}}<span class="badge">Valid</span>{{else}}<span class="tag" data-kind="revoke">Invalidated</span>{{end}}

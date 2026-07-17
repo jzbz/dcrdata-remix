@@ -46,6 +46,9 @@ export default class extends Controller {
   }
 
   disconnect () {
+    // An in-flight fetch that resolves 503 after disconnect must not re-arm
+    // the retry timer cleared below; fetchAndDraw checks this flag.
+    this.disconnected = true
     cancelAnimationFrame(this.redrawFrame)
     clearTimeout(this.retryTimer)
     if (this.lazyObserver) {
@@ -70,6 +73,7 @@ export default class extends Controller {
       const url = new URL(this.urlValue, window.location.origin)
       url.searchParams.set('max', String(maxPoints))
       const resp = await fetch(url, { headers: { Accept: 'application/json' } })
+      if (this.disconnected) return
       // Some series (e.g. the combined treasury chart) are built lazily and
       // return 503 until ready; poll briefly so the chart fills in on its own.
       if (resp.status === 503 && attempt < 12) {
