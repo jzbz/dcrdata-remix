@@ -1757,6 +1757,19 @@ type dashboardPage struct {
 	TreasuryDCR float64
 }
 
+// homeInfoCopy returns a snapshot of the shared HomeInfo taken under the page
+// data lock. Writers (Store, the ASR simulation, updateDevFundBalance) mutate
+// the shared struct in place on every block, so handlers must not read its
+// fields — or hand the pointer to a template — after releasing the lock. The
+// pointer members (TreasuryBalance, ExchangeRate) are replaced wholesale by
+// writers, never mutated, so sharing them from a snapshot is safe.
+func (exp *explorerUI) homeInfoCopy() *types.HomeInfo {
+	exp.pageData.RLock()
+	defer exp.pageData.RUnlock()
+	hi := *exp.pageData.HomeInfo
+	return &hi
+}
+
 // DashboardV2 renders the redesigned dashboard / network overview (v2 only).
 func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1764,9 +1777,7 @@ func (exp *explorerUI) DashboardV2(w http.ResponseWriter, r *http.Request) {
 	height := exp.Height()
 	blocks := exp.dataSource.GetExplorerBlocks(ctx, int(height), int(height)-8)
 
-	exp.pageData.RLock()
-	homeInfo := exp.pageData.HomeInfo
-	exp.pageData.RUnlock()
+	homeInfo := exp.homeInfoCopy()
 
 	supplyDCR := float64(homeInfo.CoinSupply) / 1e8
 	page := &dashboardPage{
@@ -1810,9 +1821,7 @@ type stakingPage struct {
 // StakingV2 renders the redesigned staking overview (v2 only).
 func (exp *explorerUI) StakingV2(w http.ResponseWriter, r *http.Request) {
 	common := exp.commonData(r)
-	exp.pageData.RLock()
-	homeInfo := exp.pageData.HomeInfo
-	exp.pageData.RUnlock()
+	homeInfo := exp.homeInfoCopy()
 
 	page := &stakingPage{
 		CommonPageData: common,
@@ -2535,6 +2544,41 @@ func (exp *explorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// publicBaseURL builds the public-facing scheme://host prefix used for
+// absolute links such as the social-card og:image/og:url. dcrdata typically
+// runs behind a TLS-terminating reverse proxy, so the request it sees is plain
+// HTTP to a loopback address: derive the real scheme from the proxy's
+// forwarded headers. When the AllowedHosts middleware has blanked r.Host for a
+// non-matching request, the request did not arrive with the operator's
+// canonical Host, so none of its forwarded headers can be trusted either —
+// fall back to the configured canonical host rather than echoing a
+// client-supplied X-Forwarded-Host into absolute URLs.
+func publicBaseURL(r *http.Request, allowedHosts []string) string {
+	host := r.Host
+	hostTrusted := host != ""
+	if !hostTrusted && len(allowedHosts) > 0 {
+		host = allowedHosts[0]
+	}
+	var scheme string
+	if hostTrusted {
+		scheme = strings.ToLower(r.Header.Get(xForwardedProto))
+		if scheme == "" {
+			scheme = strings.ToLower(r.Header.Get(xForwardedScheme))
+		}
+	}
+	if scheme == "" {
+		if r.TLS != nil {
+			scheme = "https"
+		} else if len(allowedHosts) > 0 {
+			// A configured public host implies a normal proxied HTTPS deploy.
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+	return scheme + "://" + host // assumes not opaque url
+}
+
 // commonData grabs the common page data that is available to every page.
 // This is particularly useful for extras.tmpl, parts of which
 // are used on every page
@@ -2551,35 +2595,7 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		log.Errorf("Cookie dcrdataDarkBG retrieval error: %v", err)
 	}
 
-	// Build the public-facing base URL (used for absolute links such as the
-	// social-card og:image/og:url). dcrdata typically runs behind a
-	// TLS-terminating reverse proxy, so the request it sees is plain HTTP to a
-	// loopback address: derive the real scheme and host from the forwarded
-	// headers, falling back to the operator's configured canonical host when the
-	// AllowedHosts middleware has blanked r.Host for a non-matching request.
-	scheme := strings.ToLower(r.Header.Get(xForwardedProto))
-	if scheme == "" {
-		scheme = strings.ToLower(r.Header.Get(xForwardedScheme))
-	}
-	if scheme == "" {
-		if r.TLS != nil {
-			scheme = "https"
-		} else if len(exp.allowedHosts) > 0 {
-			// A configured public host implies a normal proxied HTTPS deploy.
-			scheme = "https"
-		} else {
-			scheme = "http"
-		}
-	}
-	host := r.Host
-	if host == "" {
-		if xfh := r.Header.Get(xForwardedHost); xfh != "" {
-			host = xfh
-		} else if len(exp.allowedHosts) > 0 {
-			host = exp.allowedHosts[0]
-		}
-	}
-	baseURL := scheme + "://" + host // assumes not opaque url
+	baseURL := publicBaseURL(r, exp.allowedHosts)
 
 	cpd := &CommonPageData{
 		Tip:           tip,
