@@ -18,6 +18,17 @@ const (
 	IndexTreasuryOnTxHash   = `CREATE UNIQUE INDEX ` + IndexOfTreasuryTableOnTxHash + ` ON treasury(tx_hash, block_hash);`
 	DeindexTreasuryOnTxHash = `DROP INDEX ` + IndexOfTreasuryTableOnTxHash + ` CASCADE;`
 
+	// DeleteTreasuryDuplicateRows removes rows that would violate the unique
+	// index uix_treasury_tx_hash. This should be run prior to creating the
+	// index. The treasury table has no id column, so duplicates are identified
+	// by physical row location (ctid).
+	DeleteTreasuryDuplicateRows = `DELETE FROM treasury
+		WHERE ctid IN (SELECT ctid FROM (
+				SELECT ctid,
+					row_number() OVER (PARTITION BY tx_hash, block_hash ORDER BY ctid DESC) AS rnum
+				FROM treasury) t
+			WHERE t.rnum > 1);`
+
 	IndexTreasuryOnBlockHeight   = `CREATE INDEX ` + IndexOfTreasuryTableOnHeight + ` ON treasury(block_height DESC);`
 	DeindexTreasuryOnBlockHeight = `DROP INDEX ` + IndexOfTreasuryTableOnHeight + ` CASCADE;`
 

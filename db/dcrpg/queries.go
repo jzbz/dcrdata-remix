@@ -293,6 +293,21 @@ func deleteDuplicateMisses(db *sql.DB) (int64, error) {
 	return sqlExec(db, internal.DeleteMissesDuplicateRows, execErrPrefix)
 }
 
+// deleteDuplicateTreasuryTxns deletes rows in treasury with duplicate tx-block
+// hashes, leaving a single row for each (tx_hash, block_hash). Treasury rows
+// are bulk-inserted with duplicate checks disabled during the initial sync, so
+// an unclean interruption can leave duplicates that would fail the unique
+// index creation, just like the other tables handled in deleteDuplicates.
+func deleteDuplicateTreasuryTxns(db *sql.DB) (int64, error) {
+	if isuniq, err := IsUniqueIndex(db, internal.IndexOfTreasuryTableOnTxHash); err != nil && err != sql.ErrNoRows {
+		return 0, err
+	} else if isuniq {
+		return 0, nil
+	}
+	execErrPrefix := "failed to delete duplicate treasury txns: "
+	return sqlExec(db, internal.DeleteTreasuryDuplicateRows, execErrPrefix)
+}
+
 // --- stake (votes, tickets, misses, treasury) tables ---
 
 func insertTreasuryTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked, updateExistingRecords bool) error {

@@ -406,6 +406,10 @@ func (pgb *ChainDB) deleteDuplicateMisses() (int64, error) {
 	return deleteDuplicateMisses(pgb.db)
 }
 
+func (pgb *ChainDB) deleteDuplicateTreasuryTxns() (int64, error) {
+	return deleteDuplicateTreasuryTxns(pgb.db)
+}
+
 // Indexes checks
 
 // MissingIndexes lists missing table indexes and their descriptions.

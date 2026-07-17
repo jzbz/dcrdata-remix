@@ -1928,6 +1928,17 @@ func (c *appContext) getTreasuryChart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) refreshTreasuryChart() {
+	// This runs in its own goroutine, where a panic would crash the whole
+	// process (net/http only recovers handler panics). Contain it and clear
+	// the updating flag so a later request can retry the build.
+	defer func() {
+		if p := recover(); p != nil {
+			apiLog.Errorf("refreshTreasuryChart panic: %v", p)
+			c.treasuryChart.Lock()
+			c.treasuryChart.updating = false
+			c.treasuryChart.Unlock()
+		}
+	}()
 	data, err := c.buildTreasuryChart(context.Background())
 	c.treasuryChart.Lock()
 	defer c.treasuryChart.Unlock()
@@ -2064,10 +2075,14 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 }
 
 // downsampleChartJSON reduces every equal-length numeric array in a chart
-// response (e.g. t, supply, rate) to at most maxPoints by averaging equal-width
-// buckets, keeping the arrays aligned. Scalar metadata fields (bin, axis,
-// window, offset) are left untouched. The input is returned unchanged if it
-// can't be parsed or already fits.
+// response (e.g. t, supply, rate) to at most maxPoints, keeping the arrays
+// aligned: the x array ("t" or "h") keeps each bucket's first (integer) value
+// while y arrays are averaged per bucket. Scalar metadata fields (bin, axis,
+// window, offset) are left untouched and a "downsampled":true marker is added.
+// The input is returned unchanged if it can't be parsed, already fits, or has
+// no explicit x array — in index-implicit responses (bin=block or window
+// binning, where height is a function of the array index), dropping elements
+// would silently remap every point to a wrong height.
 func downsampleChartJSON(data []byte, maxPoints int) ([]byte, error) {
 	var obj map[string]json.RawMessage
 	if err := json.Unmarshal(data, &obj); err != nil {
@@ -2091,17 +2106,53 @@ func downsampleChartJSON(data []byte, maxPoints int) ([]byte, error) {
 	if seriesLen <= maxPoints || len(arrays) == 0 {
 		return data, nil
 	}
+	axisKey := ""
+	for _, k := range []string{"t", "h"} {
+		if len(arrays[k]) == seriesLen {
+			axisKey = k
+			break
+		}
+	}
+	if axisKey == "" {
+		return data, nil // index-implicit x axis: serve full resolution
+	}
 	for k, vals := range arrays {
 		if len(vals) != seriesLen {
 			continue // keep any out-of-step aux array as-is to avoid misalignment
 		}
-		b, err := json.Marshal(bucketAverage(vals, maxPoints))
+		var out []float64
+		if k == axisKey {
+			// Keep original (integer) timestamps/heights: each bucket is
+			// anchored at its first sample rather than a fractional mean.
+			out = bucketFirst(vals, maxPoints)
+		} else {
+			out = bucketAverage(vals, maxPoints)
+		}
+		b, err := json.Marshal(out)
 		if err != nil {
 			return data, nil
 		}
 		obj[k] = b
 	}
+	// Averaged buckets no longer sum to the full-resolution totals while "bin"
+	// still names the original bin width; flag the response so consumers that
+	// accumulate or sum can tell it apart from full-resolution data.
+	obj["downsampled"] = json.RawMessage("true")
 	return json.Marshal(obj)
+}
+
+// bucketFirst reduces vals to target points by taking the first value of each
+// equal-width bucket.
+func bucketFirst(vals []float64, target int) []float64 {
+	n := len(vals)
+	if target <= 0 || n <= target {
+		return vals
+	}
+	out := make([]float64, target)
+	for i := range out {
+		out[i] = vals[i*n/target]
+	}
+	return out
 }
 
 // bucketAverage reduces vals to target points by averaging equal-width buckets.
