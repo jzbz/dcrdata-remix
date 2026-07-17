@@ -35,7 +35,7 @@ func TestV2ProposalTemplateRenders(t *testing.T) {
 		Metadata    *pitypes.ProposalMetadata
 	}{tdCommon(), &pitypes.ProposalRecord{Name: "Fund the thing", Token: "abc1234567", Username: "alice", CommentsCount: 42},
 		"https://proposals.decred.org", "abc1234",
-		&pitypes.ProposalMetadata{Yes: 8200, No: 1800, Approval: 82, Rejection: 18, IsPassing: true,
+		&pitypes.ProposalMetadata{Yes: 8200, No: 1800, Approval: 0.82, Rejection: 0.18, IsPassing: true,
 			VoteCount: 10000, QuorumCount: 5000, QuorumAchieved: true, VoteStatusDesc: "Approved", ProposalStatusDesc: "Public"}})
 	mustContain(t, out, "proposal", "Fund the thing", "Vote result", "votebar", "82.0%", "Approved", "View on Politeia")
 }
