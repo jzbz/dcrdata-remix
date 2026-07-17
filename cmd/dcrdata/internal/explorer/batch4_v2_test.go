@@ -46,11 +46,24 @@ func TestV2TreasuryTemplateRenders(t *testing.T) {
 		Data  *TreasuryInfo
 		Pages []pageNumber
 	}{tdCommon(), &TreasuryInfo{
-		Balance: &dbtypes.TreasuryBalance{Balance: 82000000000000, Added: 120000000000000, Spent: 38000000000000},
+		Balance: &dbtypes.TreasuryBalance{Balance: 82000000000000, Added: 120000000000000,
+			TBase: 480000000000000, Spent: 38000000000000},
 		Transactions: []*dbtypes.TreasuryTx{
 			{TxID: dbtypes.ChainHash{1, 2, 3}, Amount: 50000000000, BlockHeight: 905000, BlockTime: dbtypes.NewTimeDef(time.Now())},
 			{TxID: dbtypes.ChainHash{4, 5, 6}, Amount: -25000000000, BlockHeight: 904000, BlockTime: dbtypes.NewTimeDef(time.Now())},
 		},
 	}, nil})
-	mustContain(t, out, "treasury", "Treasury transactions", "/tx/", "amt-in", "amt-out", "credit", "debit")
+	mustContain(t, out, "treasury", "Treasury transactions", "/tx/", "amt-in", "amt-out", "credit", "debit",
+		// Received must be Added + TBase (1.2M + 4.8M = 6M DCR), not TAdds alone.
+		"Received", "6000000")
+}
+
+// TestTreasuryTypeString verifies the pager's txntype query values round-trip
+// through the parser, so paginated treasury views keep their filter.
+func TestTreasuryTypeString(t *testing.T) {
+	for _, s := range []string{"tspend", "tadd", "treasurybase", "all"} {
+		if got := treasuryTypeString(parseTreasuryTransactionType(s)); got != s {
+			t.Errorf("treasuryTypeString(parseTreasuryTransactionType(%q)) = %q", s, got)
+		}
+	}
 }

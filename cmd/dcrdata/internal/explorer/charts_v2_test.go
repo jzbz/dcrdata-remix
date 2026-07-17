@@ -40,3 +40,15 @@ func TestV2ChartsTemplateRenders(t *testing.T) {
 		}
 	}
 }
+
+// TestChartDetailMetaUnits pins the detail-view scale/unit pairs that must
+// match what the chart API serves: the "rate" series is Th/s while the rest of
+// the UI shows Ph/s, and "work" is served pre-divided to exahash.
+func TestChartDetailMetaUnits(t *testing.T) {
+	if m := chartDetailMetas["hashrate"]; m.Scale != 1e-3 || m.Unit != "Ph/s" {
+		t.Errorf("hashrate meta = scale %v unit %q, want scale 1e-3 unit Ph/s", m.Scale, m.Unit)
+	}
+	if m := chartDetailMetas["chainwork"]; m.Scale != 1 || m.Unit != "EH" {
+		t.Errorf("chainwork meta = scale %v unit %q, want scale 1 unit EH", m.Scale, m.Unit)
+	}
+}

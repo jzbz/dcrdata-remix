@@ -1454,8 +1454,11 @@ func (exp *explorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 		treasuryData.ConvertedBalance = xcBot.Conversion(math.Round(float64(treasuryBalance.Balance) / 1e8))
 	}
 
-	// Execute the HTML template.
-	linkTemplate := fmt.Sprintf("/treasury?start=%%d&n=%d&txntype=%v", limitN, txType)
+	// Execute the HTML template. txType is a plain int type with no String
+	// method, so it must be mapped back to its query-string name; %v would
+	// render a number that parseTreasuryTransactionType does not recognize,
+	// silently switching paginated views to "all".
+	linkTemplate := fmt.Sprintf("/treasury?start=%%d&n=%d&txntype=%s", limitN, treasuryTypeString(txType))
 	pageData := struct {
 		*CommonPageData
 		Data        *TreasuryInfo
@@ -1622,6 +1625,20 @@ func treasuryTypeCount(treasuryBalance *dbtypes.TreasuryBalance, txType stake.Tx
 		typedCount = treasuryBalance.TBaseCount
 	}
 	return typedCount
+}
+
+// treasuryTypeString is the inverse of parseTreasuryTransactionType: the
+// canonical URL query value for a treasury tx type filter.
+func treasuryTypeString(txType stake.TxType) string {
+	switch txType {
+	case stake.TxTypeTSpend:
+		return "tspend"
+	case stake.TxTypeTAdd:
+		return "tadd"
+	case stake.TxTypeTreasuryBase:
+		return "treasurybase"
+	}
+	return "all"
 }
 
 // parseTreasuryTransactionType parses a treasury transaction type from a
@@ -1820,7 +1837,7 @@ type governancePage struct {
 	Treasury    *dbtypes.TreasuryBalance
 	TreasuryDCR float64 // total: decentralized account + legacy dev-fund address
 	LegacyDCR   float64 // legacy dev-fund address balance only
-	AddedDCR    float64
+	ReceivedDCR float64 // TAdds + treasurybases
 	SpentDCR    float64
 	Proposals   []govProposal
 }
@@ -1840,7 +1857,9 @@ func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
 	treasuryAtoms := devFund
 	if treasury != nil {
 		treasuryAtoms += treasury.Balance
-		page.AddedDCR = float64(treasury.Added) / 1e8
+		// Received = TAdds + treasurybases; Added alone is TAdd-only and
+		// omits treasurybase generation, the bulk of treasury income.
+		page.ReceivedDCR = float64(treasury.Added+treasury.TBase) / 1e8
 		page.SpentDCR = float64(treasury.Spent) / 1e8
 	}
 	page.TreasuryDCR = float64(treasuryAtoms) / 1e8
@@ -1893,7 +1912,7 @@ type chartDetailMeta struct {
 // is served only for keys present here.
 var chartDetailMetas = map[string]chartDetailMeta{
 	"coin-supply":           {"Coin Supply", "supply", "", "day", "#2ED6A1", "DCR", 1e-8},
-	"hashrate":              {"Hashrate", "rate", "", "day", "#36C5E0", "", 1},
+	"hashrate":              {"Hashrate", "rate", "", "day", "#36C5E0", "Ph/s", 1e-3}, // API serves Th/s; the rest of the UI shows Ph/s
 	"tx-count":              {"Transaction Count", "count", "", "day", "#9B8CFF", "", 1},
 	"fees":                  {"Fees", "fees", "", "day", "#F5A623", "DCR", 1e-8},
 	"ticket-price":          {"Ticket Price", "price", "", "window", "#5BA8FF", "DCR", 1e-8},
@@ -1902,7 +1921,7 @@ var chartDetailMetas = map[string]chartDetailMeta{
 	"privacy-participation": {"Privacy Participation", "anonymitySet", "", "day", "#2ED6A1", "DCR", 1e-8},
 	"block-size":            {"Block Size", "size", "", "day", "#9B8CFF", "bytes", 1},
 	"blockchain-size":       {"Blockchain Size", "size", "", "day", "#9B8CFF", "bytes", 1},
-	"chainwork":             {"Chainwork", "work", "", "day", "#5BA8FF", "", 1},
+	"chainwork":             {"Chainwork", "work", "", "day", "#5BA8FF", "EH", 1}, // API serves exahash
 	"ticket-pool-size":      {"Ticket Pool Size", "count", "", "day", "#5BA8FF", "tickets", 1},
 	"ticket-pool-value":     {"Ticket Pool Value", "poolval", "", "day", "#5BA8FF", "DCR", 1e-8},
 	"missed-votes":          {"Missed Votes", "missed", "", "window", "#F5A623", "votes", 1},

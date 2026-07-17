@@ -25,8 +25,8 @@ func TestV2GovernanceTemplateRenders(t *testing.T) {
 
 	page := &governancePage{
 		CommonPageData: tdCommon(),
-		Treasury:       &dbtypes.TreasuryBalance{Balance: 82000000000000, Added: 120000000000000, Spent: 38000000000000},
-		TreasuryDCR:    820000, AddedDCR: 1200000, SpentDCR: 380000,
+		Treasury:       &dbtypes.TreasuryBalance{Balance: 82000000000000, Added: 120000000000000, TBase: 480000000000000, Spent: 38000000000000},
+		TreasuryDCR:    820000, ReceivedDCR: 6000000, SpentDCR: 380000,
 		Proposals: []govProposal{
 			{ProposalRecord: &pitypes.ProposalRecord{Name: "Fund the thing", Token: "abc123"},
 				Meta: &pitypes.ProposalMetadata{Yes: 8200, No: 1800, Approval: 82, Rejection: 18, IsPassing: true, VoteCount: 10000, VoteStatusDesc: "Approved"}},
@@ -44,6 +44,8 @@ func TestV2GovernanceTemplateRenders(t *testing.T) {
 		"/css/v2/main.css?v=",       // pipeline
 		"class=\"sidebar\"",         // shell
 		"Treasury Balance",          // treasury hero
+		"Received",                  // received tile (Added + TBase)
+		"6.00M",                     // rendered ReceivedDCR
 		"data-controller=\"count\"", // count-up
 		"Treasury over time",        // treasury chart placeholder
 		"prop-card",                 // proposal cards
