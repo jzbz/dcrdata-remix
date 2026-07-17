@@ -131,7 +131,8 @@ install the official toolchain:
 ```sh
 GO_VERSION=1.26.4
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-curl -sL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
+curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
+echo "$(curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz.sha256" | awk '{print $1}')  /tmp/go.tar.gz" | sha256sum -c -
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf /tmp/go.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/go.sh
@@ -162,7 +163,7 @@ Apply tuning. dcrdata ships suggested settings in
 below are scaled for an 8 GB host. Drop them into the cluster's `conf.d`:
 
 ```sh
-PG_VER=$(ls /etc/postgresql)
+PG_VER=$(ls /etc/postgresql | sort -V | tail -1)
 sudo tee /etc/postgresql/$PG_VER/main/conf.d/dcrdata.conf >/dev/null <<'EOF'
 # dcrdata tuning — adjust shared_buffers/effective_cache_size to your RAM.
 synchronous_commit = off
@@ -194,8 +195,15 @@ installed (architecture-independent, always a compatible release):
 
 ```sh
 sudo useradd --system --create-home --home-dir /opt/dcrd --shell /usr/sbin/nologin dcrd
-sudo -u dcrd GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/decred/dcrd@latest
-sudo GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/decred/dcrd/cmd/dcrctl@latest
+sudo GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/decred/dcrd@latest
+sudo GOBIN=/usr/local/bin /usr/local/go/bin/go install decred.org/dcrctl@latest
+```
+
+(Both installs run as root: `GOBIN=/usr/local/bin` is not writable by the
+`dcrd` user. `dcrctl` lives in its own module, `decred.org/dcrctl`, not under
+the dcrd module path.)
+
+```sh
 ```
 
 Configure it with an RPC user/password and `txindex` (required by dcrdata):
@@ -292,7 +300,7 @@ sudo -u dcrdata tee /opt/dcrdata/appdata/dcrdata.conf >/dev/null <<EOF
 [Application Options]
 # dcrd RPC
 dcrduser=dcrd
-dcrdpass=PASTE_THE_RPCPASS_FROM_STEP_5
+dcrdpass=PASTE_THE_RPCPASS_FROM_SECTION_4
 dcrdserv=127.0.0.1:9109
 dcrdcert=/opt/dcrdata/dcrd-rpc.cert
 
@@ -375,10 +383,16 @@ caches static assets, and sets sensible security headers. WebSocket upgrades
 sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
 explorer.example.com {
 	encode zstd gzip
-	reverse_proxy 127.0.0.1:7777
+	reverse_proxy 127.0.0.1:7777 {
+		# dcrdata runs with userealip=true and trusts True-Client-IP and
+		# X-Real-IP over X-Forwarded-For; Caddy only manages X-Forwarded-*,
+		# so strip/pin the others or clients can spoof their address.
+		header_up -True-Client-IP
+		header_up X-Real-IP {remote_host}
+	}
 
 	# Cache fingerprinted static assets aggressively.
-	@assets path /css/* /js/* /fonts/* /images/* /dist/*
+	@assets path /css/* /js/* /fonts/* /images/*
 	header @assets Cache-Control "public, max-age=604800"
 
 	header {
@@ -454,7 +468,12 @@ sudo systemctl restart dcrdata
 ```
 
 Or just re-run `deploy.sh`, which does all of this idempotently and only swaps in
-the new binary if the build succeeds.
+the new binary if the build succeeds. Re-runs read the original deployment
+choices (network, dcrd topology, domain, repo) from `/etc/default/dcrdata-deploy`,
+so a bare `sudo ./deploy.sh` upgrades in place; passing a conflicting network or
+topology flag aborts with an explanation rather than desyncing the configs from
+the data. A hand-customized `/etc/caddy/Caddyfile` (e.g. the Cloudflare edits in
+§9) is detected and left untouched.
 
 ---
 
@@ -464,7 +483,7 @@ the new binary if the build succeeds.
 | --- | --- |
 | `502 Bad Gateway` | Is dcrdata up? `systemctl status dcrdata`. Listening on `127.0.0.1:7777`? `ss -ltnp \| grep 7777`. |
 | Stuck on the "syncing" page | Normal on first run — initial PostgreSQL indexing is slow. Watch `journalctl -u dcrdata -f`. |
-| dcrdata exits: can't reach dcrd | Is dcrd synced and its RPC up? `dcrctl --rpcuser=… --rpcpass=… getinfo`. Cert path/permissions correct? |
+| dcrdata exits: can't reach dcrd | Is dcrd synced and its RPC up? `dcrctl --rpcserver=127.0.0.1:9109 --rpccert=/opt/dcrd/.dcrd/rpc.cert --rpcuser=… --rpcpass=… getinfo`. Cert path/permissions correct? |
 | dcrdata exits: dcrd version incompatible | Update dcrd (`go install github.com/decred/dcrd@latest`) — dcrdata checks the RPC API version on startup. |
 | `password authentication failed` (PG) | Peer auth needs the OS user and DB role to match (`dcrdata`). Run dcrdata as the `dcrdata` user and connect via `pghost=/run/postgresql`. |
 | Disk filling up | The mainnet PostgreSQL DB is large and grows. Monitor with `df -h` and `du -sh /var/lib/postgresql`. |

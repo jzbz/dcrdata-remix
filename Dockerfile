@@ -23,4 +23,8 @@ COPY --from=build /go/src/cmd/dcrdata/views_v2  /app/views_v2
 COPY --from=build /go/src/cmd/dcrdata/public    /app/public
 
 EXPOSE 7777
+# dcrdata's default apilisten is localhost:7777, which binds loopback inside
+# the container and makes published ports unreachable; listen on all container
+# interfaces by default (overridable at run time).
+ENV DCRDATA_LISTEN_URL=0.0.0.0:7777
 ENTRYPOINT ["/app/dcrdata"]
