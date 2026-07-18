@@ -32,17 +32,20 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 			Address:  "DsXyz1aBcDeFgHiJkLmNoPqRsTuVwXyZ12",
 			TxnCount: 42,
 			// Page-scoped sums over the displayed rows only. The stat tiles
-			// must NOT use these; they must come from Balance below.
-			AmountReceived: dcrutil.Amount(500 * 1e8),
-			AmountSent:     dcrutil.Amount(120.5 * 1e8),
-			AmountUnspent:  dcrutil.Amount(379.5 * 1e8),
+			// must NOT use these; they must come from Balance below. The
+			// values are distinctive so a regression is unambiguous.
+			AmountReceived: dcrutil.Amount(11111111111),
+			AmountSent:     dcrutil.Amount(22222222222),
+			AmountUnspent:  dcrutil.Amount(33333333333),
 			Balance: &dbtypes.AddressBalance{
-				NumUnspent:   7,
-				TotalUnspent: 600 * 1e8,
-				TotalSpent:   900 * 1e8,
+				NumUnspent: 7,
+				// Fractional atoms: the tiles must render these exactly,
+				// never compressed to k/M magnitudes.
+				TotalUnspent: 60000012345678, // 600000.12345678 DCR
+				TotalSpent:   90000000000000, // 900000 DCR
 			},
 			Transactions: []*dbtypes.AddressTx{
-				{TxID: dbtypes.ChainHash(*h), TxType: "Regular", IsFunding: true, ReceivedTotal: 500.0,
+				{TxID: dbtypes.ChainHash(*h), TxType: "Regular", IsFunding: true, ReceivedTotal: 500.12345678,
 					Confirmations: 37, Time: dbtypes.NewTimeDef(time.Now())},
 				{TxID: dbtypes.ChainHash(*h), TxType: "Regular", IsFunding: false, SentTotal: 120.5,
 					Confirmations: 12, Time: dbtypes.NewTimeDef(time.Now().Add(-time.Hour))},
@@ -60,9 +63,11 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 		"class=\"sidebar\"",                  // shell
 		"DsXyz1aBcDeFgHiJkLmNoPqRsTuVwXyZ12", // address
 		"Balance",                            // balance tile
-		">600<",                              // balance = Balance.TotalUnspent (600 DCR)
-		">1.50k<",                            // received = TotalSpent + TotalUnspent (1500 DCR)
-		">900<",                              // sent = Balance.TotalSpent (900 DCR)
+		">600000.12345678<",                  // balance: exact, full precision
+		">1500000.12345678<",                 // received = TotalSpent + TotalUnspent, exact
+		">900000<",                           // sent: exact, no k/M compression
+		"+500.12345678<",                     // tx row credit: exact
+		"120.5<",                             // tx row debit: exact
 		"Transaction history",                // history section
 		"data-controller=\"chart\"",          // balance-over-time chart
 		"/amountflow/day",                    // chart data source
@@ -77,10 +82,10 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 
 	// The stat tiles must reflect the full-history balance, not the sums of
 	// only the transactions on the current page (which can even go negative
-	// on a spend-heavy page).
-	for _, stale := range []string{">500<", ">120.5<", ">380<", ">379.5<"} {
+	// on a spend-heavy page), and must never be magnitude-compressed.
+	for _, stale := range []string{">111.11111111<", ">222.22222222<", ">333.33333333<", "600.00k", "1.50M", "900.00k"} {
 		if strings.Contains(out, stale) {
-			t.Errorf("rendered v2 address page shows page-scoped amount %q in a stat tile", stale)
+			t.Errorf("rendered v2 address page shows page-scoped or rounded amount %q", stale)
 		}
 	}
 }

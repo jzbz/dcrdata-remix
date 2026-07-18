@@ -356,6 +356,12 @@ func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template
 		"dcr": func(atoms int64) string {
 			return strconv.FormatFloat(dcrutil.Amount(atoms).ToCoin(), 'f', -1, 64)
 		},
+		// coin formats a float64 DCR amount exactly (shortest form, at most 8
+		// decimal places), for values that arrive as coins rather than atoms.
+		// Unlike threeSigFigs it never rounds to k/M/B magnitudes.
+		"coin": func(v float64) string {
+			return strconv.FormatFloat(math.Round(v*1e8)/1e8, 'f', -1, 64)
+		},
 		"blockVoteBitsStr": func(voteBits uint16) string {
 			if voteBits&1 == 0 {
 				return "disapprove"
