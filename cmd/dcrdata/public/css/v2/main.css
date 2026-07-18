@@ -275,13 +275,14 @@
   .stat .v .frac, .cs-height .frac { font-size: 0.58em; color: var(--muted); white-space: nowrap; }
   .data-table .frac { color: var(--muted); white-space: nowrap; }
   /* Decimals past the first two stay collapsed (zero font size keeps the
-     baseline stable) and unfold when the containing card or table row is
-     hovered — full precision on demand, tidy tiles otherwise. :active covers
-     touch, where there is no hover. */
+     baseline stable) and unfold when the containing stat card is hovered —
+     full precision on demand, tidy tiles otherwise. :active covers touch,
+     where there is no hover. Transaction tables opt out below: their amounts
+     always show full precision, with no hover effect. */
   .frac-x { font-size: 0; opacity: 0; transition: font-size .25s ease, opacity .3s ease; }
   .stat:hover .frac-x, .stat:active .frac-x,
-  tr:hover .frac-x, tr:active .frac-x,
   .cs-height:hover .frac-x { font-size: 1em; opacity: 1; }
+  .data-table .frac-x { font-size: 1em; opacity: 1; transition: none; }
   @media (prefers-reduced-motion: reduce) { .frac-x { transition: none; } }
   .stat .sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
   .delta-up { color: var(--turquoise); }

@@ -51,6 +51,7 @@ func TestV2DashboardTemplateRenders(t *testing.T) {
 		"/api/chart/coin-supply",    // hero chart fetches real API
 		"donut-wrap",                // supply/stake donuts
 		"47.3%",                     // staked percent
+		">820,000<",                 // treasury tile: full figure, not "820k"
 		"Latest blocks",             // latest blocks section
 		"/block/905142",             // block link
 	} {

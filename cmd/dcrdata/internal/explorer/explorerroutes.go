@@ -1851,6 +1851,10 @@ type governancePage struct {
 	ReceivedDCR float64 // TAdds + treasurybases
 	SpentDCR    float64
 	Proposals   []govProposal
+	// ProposalsTotal is the full historical proposal count; when only the
+	// recent page is shown the template offers a "show all" link.
+	ProposalsTotal int
+	ShowingAll     bool
 }
 
 // GovernanceV2 renders the redesigned governance page: treasury balance/activity
@@ -1878,7 +1882,15 @@ func (exp *explorerUI) GovernanceV2(w http.ResponseWriter, r *http.Request) {
 	if exp.proposals != nil {
 		tip := exp.Height()
 		target := int64(exp.ChainParams.TargetTimePerBlock.Seconds())
-		if props, _, err := exp.proposals.ProposalsAll(0, 20); err == nil {
+		// Default to the 20 most recent proposals; ?proposals=all loads the
+		// entire history.
+		limit := 20
+		if r.URL.Query().Get("proposals") == "all" {
+			page.ShowingAll = true
+			limit = math.MaxInt32
+		}
+		if props, total, err := exp.proposals.ProposalsAll(0, limit); err == nil {
+			page.ProposalsTotal = total
 			for _, p := range props {
 				page.Proposals = append(page.Proposals, govProposal{ProposalRecord: p, Meta: p.Metadata(tip, target)})
 			}

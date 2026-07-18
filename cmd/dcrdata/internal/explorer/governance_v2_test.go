@@ -27,6 +27,7 @@ func TestV2GovernanceTemplateRenders(t *testing.T) {
 		CommonPageData: tdCommon(),
 		Treasury:       &dbtypes.TreasuryBalance{Balance: 82000000000000, Added: 120000000000000, TBase: 480000000000000, Spent: 38000000000000},
 		TreasuryDCR:    820000, ReceivedDCR: 6000000, SpentDCR: 380000,
+		ProposalsTotal: 342, // more than shown: the show-all link must render
 		Proposals: []govProposal{
 			{ProposalRecord: &pitypes.ProposalRecord{Name: "Fund the thing", Token: "abc123"},
 				Meta: &pitypes.ProposalMetadata{Yes: 8200, No: 1800, Approval: 82, Rejection: 18, IsPassing: true, VoteCount: 10000, VoteStatusDesc: "Approved"}},
@@ -53,6 +54,8 @@ func TestV2GovernanceTemplateRenders(t *testing.T) {
 		"Fund the thing",            // proposal name
 		"/proposal/abc123",          // proposal link
 		"Approved",                  // vote status
+		"?proposals=all",            // show-all link target
+		"Show all 342 proposals",    // show-all link label
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered v2 governance page missing %q", want)
