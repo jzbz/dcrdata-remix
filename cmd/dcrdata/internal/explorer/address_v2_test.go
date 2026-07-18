@@ -63,13 +63,16 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 		"class=\"sidebar\"",                  // shell
 		"DsXyz1aBcDeFgHiJkLmNoPqRsTuVwXyZ12", // address
 		"Balance",                            // balance tile
-		// Balance: exact and full precision, decimals in a styled span.
-		">600000<span class=\"frac\">.12345678</span><",
-		// Received = TotalSpent + TotalUnspent, exact.
-		">1500000<span class=\"frac\">.12345678</span><",
-		">900000<", // sent: exact, no k/M compression, no frac span needed
-		"+500.12345678<",                     // tx row credit: exact
-		"120.5<",                             // tx row debit: exact
+		// Balance: comma-grouped, two decimals visible, remaining precision
+		// in the hover-revealed span — nothing rounded away.
+		">600,000<span class=\"frac\">.12<span class=\"frac-x\">345678</span></span><",
+		// Received = TotalSpent + TotalUnspent, same treatment.
+		">1,500,000<span class=\"frac\">.12<span class=\"frac-x\">345678</span></span><",
+		// Sent: whole amount — two zero decimals, no hover residue.
+		">900,000<span class=\"frac\">.00</span><",
+		// Tx row credit and debit: same exact formatting.
+		"+500<span class=\"frac\">.12<span class=\"frac-x\">345678</span></span><",
+		"120<span class=\"frac\">.50</span><",
 		"Transaction history",                // history section
 		"data-controller=\"chart\"",          // balance-over-time chart
 		"/amountflow/day",                    // chart data source

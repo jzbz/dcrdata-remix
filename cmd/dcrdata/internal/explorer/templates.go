@@ -210,6 +210,26 @@ func amountAsDecimalPartsTrimmed(v, numPlaces int64, useCommas bool) []string {
 	return []string{left, right, tail}
 }
 
+// dcrHTMLFunc renders an exact atom amount as DCR for the v2 templates:
+// comma-grouped whole part, the first two decimals always visible, and the
+// remaining significant decimals wrapped in a hover-revealed span. See the
+// "dcrHTML" template func.
+func dcrHTMLFunc(atoms int64) template.HTML {
+	neg := ""
+	if atoms < 0 {
+		neg = "-"
+		atoms = -atoms
+	}
+	whole, frac := atoms/1e8, atoms%1e8
+	fs := fmt.Sprintf("%08d", frac)
+	rest := strings.TrimRight(fs[2:], "0")
+	out := neg + humanize.Comma(whole) + `<span class="frac">.` + fs[:2]
+	if rest != "" {
+		out += `<span class="frac-x">` + rest + `</span>`
+	}
+	return template.HTML(out + `</span>`)
+}
+
 // threeSigFigs returns a representation of the float formatted to three
 // significant figures, with an appropriate magnitude prefix (k, M, B).
 // For (k, M, G) prefixes for file/memory sizes, use humanize.Bytes.
@@ -362,16 +382,16 @@ func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template
 		"coin": func(v float64) string {
 			return strconv.FormatFloat(math.Round(v*1e8)/1e8, 'f', -1, 64)
 		},
-		// dcrHTML renders an exact atom amount as DCR with the fractional part
-		// wrapped in <span class="frac"> so stylesheets can shrink the
-		// decimals. Safe as template.HTML: FormatFloat output is only digits,
-		// '.', and '-'.
-		"dcrHTML": func(atoms int64) template.HTML {
-			s := strconv.FormatFloat(dcrutil.Amount(atoms).ToCoin(), 'f', -1, 64)
-			if i := strings.IndexByte(s, '.'); i >= 0 {
-				return template.HTML(s[:i] + `<span class="frac">` + s[i:] + `</span>`)
-			}
-			return template.HTML(s)
+		// dcrHTML renders an exact atom amount as DCR: comma-grouped whole
+		// part, two decimals always visible in <span class="frac">, and any
+		// remaining significant decimals in <span class="frac-x">, which the
+		// stylesheet keeps collapsed until the containing card/row is
+		// hovered. No precision is lost — only deferred. Safe as
+		// template.HTML: output is digits, commas, '.', and '-'.
+		"dcrHTML": dcrHTMLFunc,
+		// coinHTML is dcrHTML for amounts that arrive as float64 coins.
+		"coinHTML": func(v float64) template.HTML {
+			return dcrHTMLFunc(int64(math.Round(v * 1e8)))
 		},
 		"blockVoteBitsStr": func(voteBits uint16) string {
 			if voteBits&1 == 0 {

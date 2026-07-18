@@ -54,8 +54,9 @@ func TestV2TreasuryTemplateRenders(t *testing.T) {
 		},
 	}, nil})
 	mustContain(t, out, "treasury", "Treasury transactions", "/tx/", "amt-in", "amt-out", "credit", "debit",
-		// Received must be Added + TBase (1.2M + 4.8M = 6M DCR), not TAdds alone.
-		"Received", "6000000")
+		// Received must be Added + TBase (1.2M + 4.8M = 6M DCR), not TAdds
+		// alone, comma-grouped with the two-decimal frac span.
+		"Received", "6,000,000<span class=\"frac\">.00</span>")
 }
 
 // TestTreasuryTypeString verifies the pager's txntype query values round-trip

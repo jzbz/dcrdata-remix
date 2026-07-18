@@ -62,7 +62,7 @@
             <tr>
               <td><a class="height-link" href="/tx/{{.TxID}}">{{.TxID}}</a></td>
               <td class="hide-sm"><span class="tag" data-kind="regular">{{.TxType}}</span></td>
-              <td class="num">{{if .IsFunding}}<span class="amt-in">+{{coin .ReceivedTotal}}</span>{{else}}<span class="amt-out">&minus;{{coin .SentTotal}}</span>{{end}}</td>
+              <td class="num">{{if .IsFunding}}<span class="amt-in">+{{coinHTML .ReceivedTotal}}</span>{{else}}<span class="amt-out">&minus;{{coinHTML .SentTotal}}</span>{{end}}</td>
               <td class="hide-sm num">{{.Confirmations}}</td>
               <td class="num text-muted" data-age-target="age" data-age="{{.Time.UNIX}}"></td>
               <td class="mono">{{.Time.DatetimeWithoutTZ}}</td>
