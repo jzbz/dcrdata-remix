@@ -362,6 +362,17 @@ func makeTemplateFuncMap(params *chaincfg.Params, assets *AssetManager) template
 		"coin": func(v float64) string {
 			return strconv.FormatFloat(math.Round(v*1e8)/1e8, 'f', -1, 64)
 		},
+		// dcrHTML renders an exact atom amount as DCR with the fractional part
+		// wrapped in <span class="frac"> so stylesheets can shrink the
+		// decimals. Safe as template.HTML: FormatFloat output is only digits,
+		// '.', and '-'.
+		"dcrHTML": func(atoms int64) template.HTML {
+			s := strconv.FormatFloat(dcrutil.Amount(atoms).ToCoin(), 'f', -1, 64)
+			if i := strings.IndexByte(s, '.'); i >= 0 {
+				return template.HTML(s[:i] + `<span class="frac">` + s[i:] + `</span>`)
+			}
+			return template.HTML(s)
+		},
 		"blockVoteBitsStr": func(voteBits uint16) string {
 			if voteBits&1 == 0 {
 				return "disapprove"

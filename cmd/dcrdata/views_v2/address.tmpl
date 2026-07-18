@@ -25,9 +25,9 @@
         {{with .Balance}}
         {{- /* dcr, not threeSigFigs: balances are the address page's payload
         and must be exact, never compressed to k/M magnitudes. */ -}}
-        <div class="card stat"><div class="k">Balance</div><div class="v">{{dcr .TotalUnspent}}</div><div class="sub">DCR</div></div>
-        <div class="card stat"><div class="k">Received</div><div class="v">{{dcr (add .TotalSpent .TotalUnspent)}}</div><div class="sub">DCR</div></div>
-        <div class="card stat"><div class="k">Sent</div><div class="v">{{dcr .TotalSpent}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Balance</div><div class="v">{{dcrHTML .TotalUnspent}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Received</div><div class="v">{{dcrHTML (add .TotalSpent .TotalUnspent)}}</div><div class="sub">DCR</div></div>
+        <div class="card stat"><div class="k">Sent</div><div class="v">{{dcrHTML .TotalSpent}}</div><div class="sub">DCR</div></div>
         {{end}}
         <div class="card stat"><div class="k">Transactions</div><div class="v">{{intComma .TxnCount}}</div></div>
         {{if .Balance}}<div class="card stat"><div class="k">Unspent Outputs</div><div class="v">{{intComma .Balance.NumUnspent}}</div></div>{{end}}

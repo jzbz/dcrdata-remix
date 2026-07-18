@@ -260,10 +260,19 @@
   .icon-btn:hover { color: var(--text); border-color: var(--turquoise); }
 
   /* Stat tile (sparkline added in the charts phase). */
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--gap); margin-bottom: var(--gap); }
+  /* 220px min: an exact 8-digit DCR amount with shrunken decimals must fit
+     inside the card's padding instead of clipping at its edge. */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--gap); margin-bottom: var(--gap); }
   .stat { padding: var(--sp-4) var(--sp-5); position: relative; overflow: clip; }
   .stat .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-  .stat .v { font-family: var(--font-display); font-size: 24px; margin-top: var(--sp-2); }
+  /* overflow-wrap: a pathologically long value wraps within the padding
+     rather than running under overflow:clip. */
+  .stat .v { font-family: var(--font-display); font-size: 24px; margin-top: var(--sp-2); overflow-wrap: anywhere; }
+  /* Exact amounts: de-emphasize the fractional digits so the whole-DCR part
+     carries the visual weight and long values stay compact. nowrap keeps a
+     fraction that must wrap moving to the next line as one unit instead of
+     splitting mid-digits. */
+  .stat .v .frac, .cs-height .frac { font-size: 0.58em; color: var(--muted); white-space: nowrap; }
   .stat .sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
   .delta-up { color: var(--turquoise); }
   .delta-down { color: var(--down); }

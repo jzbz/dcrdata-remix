@@ -63,9 +63,11 @@ func TestV2AddressTemplateRenders(t *testing.T) {
 		"class=\"sidebar\"",                  // shell
 		"DsXyz1aBcDeFgHiJkLmNoPqRsTuVwXyZ12", // address
 		"Balance",                            // balance tile
-		">600000.12345678<",                  // balance: exact, full precision
-		">1500000.12345678<",                 // received = TotalSpent + TotalUnspent, exact
-		">900000<",                           // sent: exact, no k/M compression
+		// Balance: exact and full precision, decimals in a styled span.
+		">600000<span class=\"frac\">.12345678</span><",
+		// Received = TotalSpent + TotalUnspent, exact.
+		">1500000<span class=\"frac\">.12345678</span><",
+		">900000<", // sent: exact, no k/M compression, no frac span needed
 		"+500.12345678<",                     // tx row credit: exact
 		"120.5<",                             // tx row debit: exact
 		"Transaction history",                // history section

@@ -13,11 +13,11 @@
       {{with .Data}}
       {{with .Balance}}
       <div class="stat-grid">
-        <div class="card stat" style="grid-column:span 2;padding:var(--sp-6)"><div class="k">Balance</div><div class="cs-height">{{dcr .Balance}}</div><div class="sub">DCR</div></div>
+        <div class="card stat" style="grid-column:span 2;padding:var(--sp-6)"><div class="k">Balance</div><div class="cs-height">{{dcrHTML .Balance}}</div><div class="sub">DCR</div></div>
         {{- /* Received = TAdds + treasurybases; .Added alone is TAdd-only and
         omits treasurybase generation, the bulk of treasury income. */ -}}
-        <div class="card stat"><div class="k">Received</div><div class="v">{{dcr (add .Added .TBase)}}</div><div class="sub">DCR all-time</div></div>
-        <div class="card stat"><div class="k">Spent</div><div class="v">{{dcr .Spent}}</div><div class="sub">DCR all-time</div></div>
+        <div class="card stat"><div class="k">Received</div><div class="v">{{dcrHTML (add .Added .TBase)}}</div><div class="sub">DCR all-time</div></div>
+        <div class="card stat"><div class="k">Spent</div><div class="v">{{dcrHTML .Spent}}</div><div class="sub">DCR all-time</div></div>
       </div>
       {{end}}
 
