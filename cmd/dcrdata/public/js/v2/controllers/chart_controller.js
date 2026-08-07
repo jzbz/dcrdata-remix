@@ -3,7 +3,7 @@
 // (points-value, handy for sparklines/previews) or fetched from dcrdata's chart
 // API (url-value), pulling the y-series out by key (ykey-value).
 import { Controller } from '@hotwired/stimulus'
-import { areaChart, sparkline, donut, drawIn } from '../charts.js'
+import { areaChart, sparkline, donut } from '../charts.js'
 
 export default class extends Controller {
   static values = {
@@ -33,31 +33,16 @@ export default class extends Controller {
       }, { rootMargin: '300px' })
       this.lazyObserver.observe(this.element)
     }
-    // The draw-in dash length is measured in rendered pixels, so it must be
-    // re-measured when the container resizes or the line re-breaks (see
-    // drawIn/screenLength in charts.js). Donuts don't use the dash draw-in.
-    if (this.kindValue !== 'donut') {
-      this.resizeObserver = new ResizeObserver(() => {
-        cancelAnimationFrame(this.redrawFrame)
-        this.redrawFrame = requestAnimationFrame(() => drawIn(this.element))
-      })
-      this.resizeObserver.observe(this.element)
-    }
   }
 
   disconnect () {
     // An in-flight fetch that resolves 503 after disconnect must not re-arm
     // the retry timer cleared below; fetchAndDraw checks this flag.
     this.disconnected = true
-    cancelAnimationFrame(this.redrawFrame)
     clearTimeout(this.retryTimer)
     if (this.lazyObserver) {
       this.lazyObserver.disconnect()
       this.lazyObserver = null
-    }
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-      this.resizeObserver = null
     }
   }
 
@@ -107,10 +92,8 @@ export default class extends Controller {
       this.element.innerHTML = donut(ys[0] || 0, this.maxValue || 1, opts)
     } else if (this.kindValue === 'sparkline') {
       this.element.innerHTML = sparkline(ys, opts)
-      drawIn(this.element)
     } else {
       this.element.innerHTML = areaChart(ys, opts)
-      drawIn(this.element)
     }
   }
 }

@@ -535,14 +535,21 @@
   .donut-label { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 24px; font-family: var(--font-display); font-size: 20px; pointer-events: none; }
   @media (max-width: 980px) { .chain-strip { grid-template-columns: 1fr 1fr; } .cs-col { border-left: 0; padding-left: 0; } .dash-2col { grid-template-columns: 1fr; } }
 
-  .chart-line { stroke-dasharray: var(--len, none); animation: chart-draw 1.4s ease forwards; }
+  /* The line is revealed left-to-right by widening the clip rect it is drawn
+     through (emitted by areaChart in charts.js), not by animating a dash. The rect
+     lives in the chart's own viewBox units and finishes at its authored full width,
+     so the settled state is an unclipped, complete line at any container size — no
+     measuring, and nothing to re-measure on resize. Only the donut still uses a
+     dash sweep, which is safe: it has no vector-effect, so its dasharray is applied
+     in user units and the circumference is known exactly. */
+  .chart-wipe { transform-box: view-box; transform-origin: 0 0; animation: chart-wipe 1.4s ease forwards; }
   .chart-fill { opacity: 0; animation: chart-fade 1.2s ease forwards 0.25s; }
   .donut-ring { stroke-dashoffset: var(--dash); animation: donut-sweep 1.6s ease forwards; }
-  @keyframes chart-draw { from { stroke-dashoffset: var(--len, 0); } to { stroke-dashoffset: 0; } }
+  @keyframes chart-wipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @keyframes chart-fade { to { opacity: 1; } }
   @keyframes donut-sweep { to { stroke-dashoffset: var(--off); } }
   @media (prefers-reduced-motion: reduce) {
-    .chart-line { animation: none; stroke-dashoffset: 0; }
+    .chart-wipe { animation: none; }
     .chart-fill { animation: none; opacity: 1; }
     .donut-ring { animation: none; stroke-dashoffset: var(--off); }
   }

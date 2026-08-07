@@ -1,8 +1,8 @@
 // charts.js — minimal inline-SVG chart toolkit (no chart library), matching the
 // redesign's type and color system. Builds SVG markup strings: smooth area/line
 // charts (Catmull-Rom spline -> cubic bezier, vertical gradient fill, a draw-in
-// stroke animation), sparklines, and donuts. After inserting the markup, call
-// drawIn() to activate the line animation.
+// wipe animation), sparklines, and donuts. The markup is self-contained: insert
+// it and the CSS animations run, with no measuring step to call afterwards.
 
 let uid = 0
 
@@ -74,7 +74,19 @@ function scale (values, w, h, pad) {
 }
 
 // areaChart returns an SVG string: a gradient-filled smooth area under a line.
-// Call drawIn() on the container afterward to animate the line (see main.css).
+//
+// The line draws itself in by being clipped to a rect that widens from nothing to
+// the full viewBox (see .chart-wipe in main.css). The rect is stated in the chart's
+// own viewBox units, so the reveal stretches with the container for free and its
+// finished state is the untouched full-width rect — the line is complete no matter
+// what the container's size did along the way.
+//
+// This replaced a stroke-dasharray draw-in whose dash length had to be measured in
+// rendered pixels: because the line is stroked with vector-effect:non-scaling-stroke,
+// browsers apply the dash pattern in device pixels, so a dash measured even slightly
+// short left the tail of the line sitting in a gap — permanently, since the dash
+// outlives the animation. Any container that was hidden, unlaid-out, or later
+// widened produced a line that stopped short of the right edge.
 export function areaChart (values, opts = {}) {
   const { color = '#2ED6A1', height = 90, width = 320, pad = 6 } = opts
   if (!values || values.length < 2) return '<div class="chart-empty">no data</div>'
@@ -82,60 +94,16 @@ export function areaChart (values, opts = {}) {
   const line = smoothPath(pts)
   const area = `${line} L${width.toFixed(2)},${height} L0,${height} Z`
   const id = `cg${++uid}`
+  const clip = `cw${uid}`
   return `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-hidden="true">
   <defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1">
     <stop offset="0" stop-color="${color}" stop-opacity="0.32"/>
     <stop offset="1" stop-color="${color}" stop-opacity="0"/>
-  </linearGradient></defs>
+  </linearGradient>
+  <clipPath id="${clip}"><rect class="chart-wipe" x="0" y="0" width="${width}" height="${height}"/></clipPath></defs>
   <path class="chart-fill" d="${area}" fill="url(#${id})"/>
-  <path class="chart-line" d="${line}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  <path class="chart-line" d="${line}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" clip-path="url(#${clip})"/>
 </svg>`
-}
-
-// drawIn activates the line draw-in: it measures each chart line's length and
-// exposes it as the --len custom property that the CSS animation keys off (see
-// .chart-line in main.css). The line is stroked with vector-effect:
-// non-scaling-stroke inside a viewBox stretched by preserveAspectRatio="none",
-// so its dash pattern is measured in *screen pixels*, not SVG user units.
-// getTotalLength() returns user units, which is wrong whenever the container's
-// aspect ratio differs from the viewBox — the dash comes out too short and the
-// line is only drawn partway ("broken"). We instead measure the real on-screen
-// length by sampling the path and mapping each sample through its screen CTM.
-// Call this after inserting the markup into a connected, laid-out node.
-export function drawIn (root) {
-  if (!root) return
-  for (const line of root.querySelectorAll('.chart-line')) {
-    line.style.setProperty('--len', screenLength(line).toFixed(2))
-  }
-}
-
-// screenLength returns a path's rendered length in CSS pixels, accounting for
-// any non-uniform viewBox scaling. Falls back to the user-space length when the
-// element is not laid out (no screen CTM available).
-//
-// The length is sampled as a chord sum, which always *under*-estimates a curve.
-// A wiggly line (e.g. a volatile daily series) undersampled here yields a dash
-// shorter than the line, so the draw-in stops partway and the rest of the line
-// is missing. Sample densely and apply a small safety margin so the dash always
-// covers the whole line; over-estimating only finishes the wipe a touch early,
-// which is imperceptible, whereas under-estimating visibly truncates the line.
-function screenLength (path) {
-  const total = path.getTotalLength()
-  const ctm = path.getScreenCTM()
-  if (!total || !ctm) return total || 0
-  const steps = 2000
-  let len = 0
-  let px = null
-  let py = null
-  for (let i = 0; i <= steps; i++) {
-    const p = path.getPointAtLength((i / steps) * total)
-    const sx = ctm.a * p.x + ctm.c * p.y + ctm.e
-    const sy = ctm.b * p.x + ctm.d * p.y + ctm.f
-    if (px !== null) len += Math.hypot(sx - px, sy - py)
-    px = sx
-    py = sy
-  }
-  return len * 1.1
 }
 
 // sparkline is a compact area chart for stat tiles.
