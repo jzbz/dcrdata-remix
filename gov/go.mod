@@ -21,7 +21,7 @@ require (
 	github.com/decred/base58 v1.0.6 // indirect
 	github.com/decred/dcrd/blockchain/stake/v3 v3.0.0 // indirect
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.2 // indirect
-	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.2 // indirect
+	github.com/decred/dcrd/blockchain/standalone/v2 v2.3.0 // indirect
 	github.com/decred/dcrd/certgen v1.1.1 // indirect
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
@@ -32,14 +32,14 @@ require (
 	github.com/decred/dcrd/dcrec v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.4 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/decred/dcrd/dcrutil/v3 v3.0.0 // indirect
 	github.com/decred/dcrd/dcrutil/v4 v4.0.3 // indirect
 	github.com/decred/dcrd/gcs/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/hdkeychain/v3 v3.1.0 // indirect
 	github.com/decred/dcrd/txscript/v3 v3.0.0 // indirect
 	github.com/decred/dcrd/txscript/v4 v4.1.2 // indirect
-	github.com/decred/dcrd/wire v1.7.1 // indirect
+	github.com/decred/dcrd/wire v1.7.5 // indirect
 	github.com/decred/dcrtime v0.0.0-20191018193024-8d8b4ef0458e // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/trillian v1.4.1 // indirect

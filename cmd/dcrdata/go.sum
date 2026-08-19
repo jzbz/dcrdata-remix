@@ -388,8 +388,8 @@ github.com/decred/dcrd/blockchain/stake/v5 v5.0.2 h1:5SZwlt0oJRuj64MqSFyQItSvfnd
 github.com/decred/dcrd/blockchain/stake/v5 v5.0.2/go.mod h1:h6Xw2ECYewEb27i8yVsjOKktVIIu0TTS6EKhqfxfnbA=
 github.com/decred/dcrd/blockchain/standalone v1.0.0/go.mod h1:U5lOleFSi1nL7heSdLgEtuvg0udS1p3cvHxvLJbihfE=
 github.com/decred/dcrd/blockchain/standalone/v2 v2.0.0/go.mod h1:t2qaZ3hNnxHZ5kzVJDgW5sp47/8T5hYJt7SR+/JtRhI=
-github.com/decred/dcrd/blockchain/standalone/v2 v2.2.2 h1:mQA1cEzMS6EHbgV50wb2VFx4VQjNE8+n/B5BKvp5HWk=
-github.com/decred/dcrd/blockchain/standalone/v2 v2.2.2/go.mod h1:lkBXrIA42dLYG4nDKAf08RlAeO4c4FC5YeDh8if91Hc=
+github.com/decred/dcrd/blockchain/standalone/v2 v2.3.0 h1:AbHhFQE0paPmhRumRkoeRUTrWh0Gb0409exls+yU3VM=
+github.com/decred/dcrd/blockchain/standalone/v2 v2.3.0/go.mod h1:9r5PlToh/WNrP3UJ4mG7Hq1U2WQ6I0uu9qMCpsRw22s=
 github.com/decred/dcrd/blockchain/v3 v3.0.2/go.mod h1:LD5VA95qdb+DlRiPI8VLBimDqvlDCAJsidZ5oD6nc/U=
 github.com/decred/dcrd/blockchain/v5 v5.0.1 h1:IGr8rJsgBVKDBI8STzeuGF6Mej0xbIX4gVVBA9yEMRU=
 github.com/decred/dcrd/blockchain/v5 v5.0.1/go.mod h1:LtSV1+u8aBQzlExAQcl4HIJ6Bfi5f6Rvws/9euH4mDA=
@@ -459,8 +459,8 @@ github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0/go.mod h1:3s92l0paYkZoIHuj4X93T
 github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0 h1:sgNeV1VRMDzs6rzyPpxyM0jp317hnwiq58Filgag2xw=
 github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0/go.mod h1:J70FGZSbzsjecRTiTzER+3f1KZLNaXkuv+yeFTKoxM8=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1/go.mod h1:hyedUtir6IdtD/7lIxGeCxkaw7y45JueMRL4DIyJDKs=
-github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 h1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=
-github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0/go.mod h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=
+github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 h1:5RVFMOWjMyRy8cARdy79nAmgYw3hK/4HUq48LQ6Wwqo=
+github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1/go.mod h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=
 github.com/decred/dcrd/dcrjson v1.0.0/go.mod h1:ozddIaeF+EAvZZvFuB3zpfxhyxBGfvbt22crQh+PYuI=
 github.com/decred/dcrd/dcrjson/v3 v3.0.0/go.mod h1:pWYlHJ3VFidPwqD5HHiJXjfGaplif8uspAL2qFdifkY=
 github.com/decred/dcrd/dcrjson/v3 v3.1.0/go.mod h1:fnTHev/ABGp8IxFudDhjGi9ghLiXRff1qZz/wvq12Mg=
@@ -516,8 +516,8 @@ github.com/decred/dcrd/wire v1.1.0/go.mod h1:/JKOsLInOJu6InN+/zH5AyCq3YDIOW/Eqcf
 github.com/decred/dcrd/wire v1.2.0/go.mod h1:/JKOsLInOJu6InN+/zH5AyCq3YDIOW/EqcffvU8fJHM=
 github.com/decred/dcrd/wire v1.3.0/go.mod h1:fnKGlUY2IBuqnpxx5dYRU5Oiq392OBqAuVjRVSkIoXM=
 github.com/decred/dcrd/wire v1.4.0/go.mod h1:WxC/0K+cCAnBh+SKsRjIX9YPgvrjhmE+6pZlel1G7Ro=
-github.com/decred/dcrd/wire v1.7.1 h1:kDuHBiY1Qv9rBxYKgC2RgyPy7IOA2WRf00jqHwpr16I=
-github.com/decred/dcrd/wire v1.7.1/go.mod h1:eP9XRsMloy+phlntkTAaAm611JgLv8NqY1YJoRxkNKU=
+github.com/decred/dcrd/wire v1.7.5 h1:fRaaB5CrwYWGI3YVv50XHm54lsU1TB40WnnIJ4W6aGM=
+github.com/decred/dcrd/wire v1.7.5/go.mod h1:NZK8QD5W2ObX6p+Q0TUzYNpQtk4Ov3pBIvc6ZUK88FU=
 github.com/decred/dcrdata/api/types/v4 v4.0.4/go.mod h1:CCu2Itqv/K3lqFxqSYDC49XWu5OuZRvNFkPiFHb0tYU=
 github.com/decred/dcrdata/db/dbtypes/v2 v2.1.4/go.mod h1:UF4KWxcCYhdXqaTwbA2Mb10os4H0UFSZaiu5eeMWQT8=
 github.com/decred/dcrdata/semver v1.0.0/go.mod h1:z+nQqiAd9fYkHhBLbejysZ2FPHtgkrErWDgMf+JlZWE=

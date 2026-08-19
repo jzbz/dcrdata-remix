@@ -12,14 +12,14 @@ replace (
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.2
-	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.2
+	github.com/decred/dcrd/blockchain/standalone/v2 v2.3.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.5
 	github.com/decred/dcrd/chaincfg/v3 v3.3.0
 	github.com/decred/dcrd/dcrutil/v4 v4.0.3
 	github.com/decred/dcrd/rpc/jsonrpc/types/v4 v4.4.0
 	github.com/decred/dcrd/rpcclient/v8 v8.1.0
 	github.com/decred/dcrd/txscript/v4 v4.1.2
-	github.com/decred/dcrd/wire v1.7.1
+	github.com/decred/dcrd/wire v1.7.5
 	github.com/decred/dcrdata/db/dcrpg/v8 v8.0.0
 	github.com/decred/dcrdata/exchanges/v3 v3.1.0
 	github.com/decred/dcrdata/gov/v6 v6.0.0
@@ -103,7 +103,7 @@ require (
 	github.com/decred/dcrd/dcrec v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.4 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/decred/dcrd/dcrjson/v4 v4.2.0 // indirect
 	github.com/decred/dcrd/dcrutil/v3 v3.0.0 // indirect
 	github.com/decred/dcrd/gcs/v2 v2.1.0 // indirect
