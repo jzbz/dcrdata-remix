@@ -59,12 +59,27 @@ and the initial sync is CPU- and I/O-heavy.
 ## Quick start (automated)
 
 The repository ships a [`deploy.sh`](deploy.sh) that performs every step in this
-guide. On a fresh VPS, as root:
+guide. On a fresh VPS, one line:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jzbz/dcrdata-remix/master/deploy.sh | sudo bash -s -- --domain explorer.example.com
+```
+
+The `-s --` is required: without it `bash` reads `--domain` as its own flag. To
+serve plain HTTP on `:80` instead, pass `--http` and no domain.
+
+Or clone first, which lets you read the script before running it and is the
+better choice on a link you don't trust:
 
 ```sh
 git clone https://github.com/jzbz/dcrdata-remix
 sudo ./dcrdata-remix/deploy.sh --domain explorer.example.com
 ```
+
+> Piping to `bash` runs whatever arrives, so a connection that drops mid-transfer
+> executes a truncated script. The blast radius here is small — every step is
+> idempotent, so re-running finishes the job — but the clone form avoids the
+> question entirely.
 
 > By default the script deploys `jzbz/dcrdata-remix`. Point `--repo` at a
 > different fork to deploy your own build.

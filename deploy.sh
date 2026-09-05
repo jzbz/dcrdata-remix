@@ -20,6 +20,8 @@
 # asks for. Pass --no-repair to leave it alone.
 #
 # Usage (run as root or with sudo):
+#   curl -fsSL https://raw.githubusercontent.com/jzbz/dcrdata-remix/master/deploy.sh \
+#     | sudo bash -s -- --domain explorer.example.com
 #   sudo ./deploy.sh --domain explorer.example.com
 #   sudo ./deploy.sh --domain explorer.example.com --repo https://github.com/me/dcrdata
 #   sudo ./deploy.sh --http                       # no domain: serve plain HTTP on :80
@@ -50,6 +52,9 @@ set -euo pipefail
 GO_VERSION="1.27.1"
 DCRD_VERSION="latest"
 REPO_URL="https://github.com/jzbz/dcrdata-remix"
+# Where this script is served from, quoted in usage when it was piped to bash
+# and so has no readable source of its own to print.
+SELF_URL="https://raw.githubusercontent.com/jzbz/dcrdata-remix/master/deploy.sh"
 LISTEN="127.0.0.1:7777"
 DOMAIN=""
 HTTP_ONLY=0
@@ -89,18 +94,44 @@ warn() { printf '%s  !%s %s\n' "$C_RED" "$C_OFF" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$C_RED" "$C_OFF" "$*" >&2; exit 1; }
 
 # Print the header comment block (everything after the shebang up to the first
-# non-comment line) as usage text.
+# non-comment line) as usage text. Piped to bash — curl ... | sudo bash — there
+# is no such block to read: $0 is "bash", not a file. Fall back to a short form
+# rather than failing, since that is exactly when a user has mistyped a flag and
+# needs to be told what the flags are.
 usage() {
   local line
-  while IFS= read -r line; do
-    case "$line" in
-      '#!'*) continue ;;
-      '# '*) printf '%s\n' "${line#'# '}" ;;
-      '#')   printf '\n' ;;
-      '#'*)  printf '%s\n' "${line#'#'}" ;;
-      *)     break ;;
-    esac
-  done < "$0"
+  # "$0" is a bare "bash" under a pipe, which [[ -r ]] would resolve against the
+  # current directory — so require a shebang too, or a stray ./bash would be
+  # printed as this script's help.
+  if [[ -r "$0" ]] && [[ "$(head -c2 "$0" 2>/dev/null)" == '#!' ]]; then
+    while IFS= read -r line; do
+      case "$line" in
+        '#!'*) continue ;;
+        '# '*) printf '%s\n' "${line#'# '}" ;;
+        '#')   printf '\n' ;;
+        '#'*)  printf '%s\n' "${line#'#'}" ;;
+        *)     break ;;
+      esac
+    done < "$0"
+  else
+    cat <<EOF
+deploy.sh — provision dcrdata on a fresh Debian 13 / Ubuntu 24.04 LTS VPS.
+
+Usage:
+  curl -fsSL ${SELF_URL} \\
+    | sudo bash -s -- --domain explorer.example.com   # HTTPS via Caddy
+  curl -fsSL ${SELF_URL} \\
+    | sudo bash -s -- --http                          # plain HTTP on :80
+
+Note the "-s --" : without it bash treats the flags as its own.
+
+Other options: --testnet, --skip-dcrd (with --dcrdserv/-user/-pass/-cert),
+--repo, --go-version, --dcrd-version, --listen, --no-repair.
+
+Full documentation: ${REPO_URL}/blob/master/DEPLOY.md
+For the complete option list, download the script and run: ./deploy.sh --help
+EOF
+  fi
   exit "${1:-0}"
 }
 
@@ -126,7 +157,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ $EUID -eq 0 ]] || die "must run as root (try: sudo $0 ...)"
+# $0 is "bash" when piped, so "sudo $0" would not be a runnable command; give
+# the piped form instead of advice that cannot be followed.
+if [[ $EUID -ne 0 ]]; then
+  if [[ -r "$0" ]] && [[ "$(head -c2 "$0" 2>/dev/null)" == '#!' ]]; then
+    die "must run as root (try: sudo $0 ...)"
+  else
+    die "must run as root. Pipe to 'sudo bash', keeping the -s -- :
+       curl -fsSL ${SELF_URL} | sudo bash -s -- --domain explorer.example.com"
+  fi
+fi
 
 # ---- Recorded deployment state --------------------------------------------
 # The config files are regenerated from this invocation's flags on every run,
@@ -718,6 +758,7 @@ ok "dcrdata service running"
 
 # ---- 9. Caddy ------------------------------------------------------------
 
+CADDY_FRESH=0
 if command -v caddy >/dev/null 2>&1; then
   ok "Caddy already installed ($(caddy version | head -1))"
 else
@@ -730,6 +771,10 @@ else
     > /etc/apt/sources.list.d/caddy-stable.list
   apt-get update -qq
   apt-get install -y -qq caddy >/dev/null
+  # The .deb ships its own /etc/caddy/Caddyfile (the welcome page) and starts
+  # caddy with it, so from here that file exists but is dpkg's, not an
+  # operator's. The guard below needs to know that.
+  CADDY_FRESH=1
   ok "Caddy installed"
 fi
 
@@ -767,10 +812,17 @@ EOF
 # existing file without the marker may carry operator edits — the Cloudflare
 # or origin-cert changes DEPLOY.md describes, or a pre-marker script write —
 # and telling those apart is not possible, so never overwrite it: warn with
-# the important directives instead. Delete the file and re-run (or add the
-# marker line yourself) to hand it back to the script.
-if [[ -f "$CADDYFILE" ]] && ! grep -qF "$CADDY_MARKER" "$CADDYFILE"; then
+# the important directives instead.
+#
+# Two files provably carry no operator edits, and both must be overwritten or a
+# fresh VPS finishes the deploy serving Caddy's welcome page instead of the
+# explorer: the one dpkg unpacked seconds ago in this same run, and Caddy's
+# stock config, which is recognisable by the file_server root only it carries.
+CADDY_UNMANAGED=0
+if [[ -f "$CADDYFILE" ]] && ! grep -qF "$CADDY_MARKER" "$CADDYFILE" \
+   && [[ $CADDY_FRESH -eq 0 ]] && ! grep -qF 'root * /usr/share/caddy' "$CADDYFILE"; then
   rm -f "$CADDY_NEW"
+  CADDY_UNMANAGED=1
   warn "existing ${CADDYFILE} is not managed by this script; leaving it untouched."
   warn "ensure its reverse_proxy block strips client IP spoofing:"
   warn "    header_up -True-Client-IP"
@@ -780,6 +832,11 @@ elif [[ -f "$CADDYFILE" ]] && cmp -s "$CADDY_NEW" "$CADDYFILE"; then
   rm -f "$CADDY_NEW"
   ok "Caddyfile unchanged"
 else
+  # Never overwrite a file this script did not write without leaving a copy.
+  if [[ -f "$CADDYFILE" ]] && ! grep -qF "$CADDY_MARKER" "$CADDYFILE"; then
+    cp -a "$CADDYFILE" "${CADDYFILE}.bak"
+    log "saved the previous ${CADDYFILE} to ${CADDYFILE}.bak"
+  fi
   install -m 644 "$CADDY_NEW" "$CADDYFILE"
   rm -f "$CADDY_NEW"
   caddy validate --config "$CADDYFILE" >/dev/null
@@ -809,7 +866,12 @@ chmod 644 "$STATE_FILE"
 # ---- Done -----------------------------------------------------------------
 
 echo
-if [[ "$ACTION" == "upgrade" ]]; then
+if [[ $CADDY_UNMANAGED -eq 1 ]]; then
+  warn "Deployment incomplete: ${CADDYFILE} was left as it was, so nothing"
+  warn "proxies to dcrdata yet. dcrd, PostgreSQL and dcrdata are installed and"
+  warn "running on ${LISTEN}; add a reverse_proxy to it, or delete that file"
+  warn "and re-run to have one generated."
+elif [[ "$ACTION" == "upgrade" ]]; then
   ok "Upgrade complete — dcrdata rebuilt and restarted."
 else
   ok "Deployment complete (${NETWORK})."
