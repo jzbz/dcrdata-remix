@@ -37,7 +37,7 @@
 #   --dcrduser <user>  Existing dcrd RPC username  (with --skip-dcrd).
 #   --dcrdpass <pass>  Existing dcrd RPC password  (with --skip-dcrd).
 #   --dcrdcert <path>  Existing dcrd rpc.cert file (with --skip-dcrd).
-#   --go-version <v>   Go toolchain version        (default: 1.26.4).
+#   --go-version <v>   Go toolchain version        (default: 1.27.1).
 #   --dcrd-version <v> dcrd version to go install  (default: latest).
 #   --listen <addr>    dcrdata internal listen     (default: 127.0.0.1:7777).
 #   --no-repair        Do not repair a stake-database desync; only report it.
@@ -47,7 +47,7 @@ set -euo pipefail
 
 # ---- Configuration --------------------------------------------------------
 
-GO_VERSION="1.26.4"
+GO_VERSION="1.27.1"
 DCRD_VERSION="latest"
 REPO_URL="https://github.com/jzbz/dcrdata-remix"
 LISTEN="127.0.0.1:7777"
@@ -237,10 +237,15 @@ if $GO version 2>/dev/null | grep -q "go${GO_VERSION} "; then
 else
   log "Installing Go ${GO_VERSION} (${GO_ARCH})"
   tmp="$(mktemp -d)"
-  curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" -o "${tmp}/go.tar.gz"
+  # dl.google.com, not go.dev/dl: the latter is a redirector that answers the
+  # .sha256 sidecar with an HTML page, which awk below would happily reduce to
+  # "<!DOCTYPE" and sha256sum would then reject as malformed — failing the
+  # deploy on a checksum that was never fetched. dl.google.com serves both the
+  # tarball and the bare hash, and is where go.dev/dl redirects anyway.
+  curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" -o "${tmp}/go.tar.gz"
   # Verify against the published checksum: this tarball is extracted as root
   # and its toolchain builds everything else in the deploy.
-  curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz.sha256" -o "${tmp}/go.tar.gz.sha256"
+  curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz.sha256" -o "${tmp}/go.tar.gz.sha256"
   echo "$(awk '{print $1}' "${tmp}/go.tar.gz.sha256")  ${tmp}/go.tar.gz" | sha256sum -c --quiet - \
     || die "Go tarball sha256 mismatch (go${GO_VERSION}.linux-${GO_ARCH}.tar.gz)"
   rm -rf /usr/local/go
@@ -520,7 +525,12 @@ User=${DATA_USER}
 Group=${DATA_USER}
 WorkingDirectory=${APP_CMD}
 ExecStart=${APP_CMD}/dcrdata --appdata=${APPDATA}
-Restart=on-failure
+# always, not on-failure: dcrdata requests its own shutdown on unrecoverable
+# conditions — a notification handler failing, SignalHeight timing out, the web
+# server dying — and those paths exit 0, which on-failure would treat as a
+# clean stop and leave the explorer down. An explicit systemctl stop is still
+# exempt, so this does not fight the repair above.
+Restart=always
 RestartSec=10
 NoNewPrivileges=true
 ProtectSystem=strict

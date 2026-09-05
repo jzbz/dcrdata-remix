@@ -90,7 +90,7 @@ Useful flags:
 | `--testnet` | Index testnet instead of mainnet. |
 | `--skip-dcrd` | Don't install dcrd; connect to an existing node (see below). |
 | `--dcrdserv/-user/-pass/-cert` | Coordinates of an existing dcrd (with `--skip-dcrd`). |
-| `--go-version <v>` | Go toolchain version (default `1.26.4`). |
+| `--go-version <v>` | Go toolchain version (default `1.27.1`). |
 | `--dcrd-version <v>` | dcrd version to `go install` (default `latest`). |
 | `--no-repair` | Don't repair a desynced stake database; only report it (see [Troubleshooting](#troubleshooting)). |
 
@@ -130,10 +130,11 @@ dcrdata targets the Go version in `go.mod`. Distro packages are often older, so
 install the official toolchain:
 
 ```sh
-GO_VERSION=1.26.4
+GO_VERSION=1.27.1
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
-echo "$(curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz.sha256" | awk '{print $1}')  /tmp/go.tar.gz" | sha256sum -c -
+# Use dl.google.com: go.dev/dl answers the .sha256 sidecar with an HTML page.
+curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
+echo "$(curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-${ARCH}.tar.gz.sha256" | awk '{print $1}')  /tmp/go.tar.gz" | sha256sum -c -
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf /tmp/go.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/go.sh
@@ -340,7 +341,9 @@ User=dcrdata
 Group=dcrdata
 WorkingDirectory=/opt/dcrdata/app/cmd/dcrdata
 ExecStart=/opt/dcrdata/app/cmd/dcrdata/dcrdata --appdata=/opt/dcrdata/appdata
-Restart=on-failure
+# always, not on-failure: dcrdata exits 0 when it requests its own shutdown on
+# an unrecoverable condition, which on-failure would leave stopped.
+Restart=always
 RestartSec=10
 
 # Hardening
