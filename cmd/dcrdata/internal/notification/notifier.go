@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -71,6 +72,7 @@ type Notifier struct {
 	tx       [][]TxHandler
 	block    [][]BlockHandler
 	reorg    [][]ReorgHandler
+	fatal    func()
 	previous struct {
 		hash   chainhash.Hash
 		height uint32
@@ -262,6 +264,18 @@ func (notifier *Notifier) RegisterReorgHandlerGroup(handlers ...ReorgHandler) {
 	notifier.reorg = append(notifier.reorg, handlers)
 }
 
+// SetFatalHandler registers a callback invoked when a handler group fails and
+// the notification is abandoned. Once that happens the Notifier cannot connect
+// any further blocks — the abandoned block is deliberately not recorded, so
+// every subsequent block fails the connects-to check in processBlock — so the
+// intended callback is requestShutdown. Restarting resumes from the last
+// consistent height via the batch sync, which is the only thing that can get
+// the data stores moving again. With no handler set the Notifier simply stops
+// connecting blocks.
+func (notifier *Notifier) SetFatalHandler(f func()) {
+	notifier.fatal = f
+}
+
 // SetPreviousBlock modifies the height and hash of the best block. This data is
 // required to avoid connecting new blocks that are not next in the chain. It is
 // only necessary to call SetPreviousBlock if blocks are connected or
@@ -296,6 +310,7 @@ func (notifier *Notifier) processBlock(bh *wire.BlockHeader) {
 	start := time.Now()
 	for _, handlers := range notifier.block {
 		wg := new(sync.WaitGroup)
+		var failed atomic.Bool
 		for _, h := range handlers {
 			wg.Add(1)
 			go func(h BlockHandler) {
@@ -306,7 +321,9 @@ func (notifier *Notifier) processBlock(bh *wire.BlockHeader) {
 						functionName(h), time.Since(tStart))
 				}()
 				if err := h(bh); err != nil {
-					log.Errorf("block handler failed: %v", err)
+					log.Errorf("block handler %s failed for block %d (%v): %v",
+						functionName(h), height, hash, err)
+					failed.Store(true)
 					return
 				}
 			}(h)
@@ -320,6 +337,23 @@ func (notifier *Notifier) processBlock(bh *wire.BlockHeader) {
 		case <-done:
 		case <-time.NewTimer(SyncHandlerDeadline).C:
 			log.Errorf("at least 1 block handler has not completed before the deadline")
+			return
+		}
+
+		// Handler groups are registered in dependency order: the stake database
+		// is connected before the block is stored in PostgreSQL. Running the
+		// later groups anyway after an earlier one failed is what leaves the two
+		// stores at different heights — a state dcrdata cannot repair on its own
+		// (the only rewind fires when the stake database is ahead) and which
+		// panics the next batch sync. Abandon the block instead, leaving
+		// notifier.previous untouched so nothing is recorded as connected.
+		if failed.Load() {
+			log.Errorf("Abandoning block %d (%v) after a handler failure. No "+
+				"further blocks can be connected; restarting resumes from the "+
+				"last consistent height.", height, hash)
+			if notifier.fatal != nil {
+				notifier.fatal()
+			}
 			return
 		}
 	}
@@ -390,13 +424,15 @@ func (notifier *Notifier) signalReorg(d BranchTips) {
 	start := time.Now()
 	for i, handlers := range notifier.reorg {
 		wg := new(sync.WaitGroup)
+		var failed atomic.Bool
 		for j, h := range handlers {
 			wg.Add(1)
 			go func(h ReorgHandler, i, j int) {
 				defer wg.Done()
 				defer log.Debugf("Notifier: ReorgHandler %d.%d completed", i, j)
 				if err := h(reorg); err != nil {
-					log.Errorf("reorg handler failed: %v", err)
+					log.Errorf("reorg handler %d.%d failed: %v", i, j, err)
+					failed.Store(true)
 					return
 				}
 			}(h, i, j)
@@ -410,6 +446,20 @@ func (notifier *Notifier) signalReorg(d BranchTips) {
 		case <-done:
 		case <-time.NewTimer(SyncHandlerDeadline).C:
 			log.Errorf("at least 1 reorg handler has not completed before the deadline")
+			return
+		}
+
+		// As in processBlock: the reorg groups are ordered stake database first,
+		// then blockdata and chainDB. Carrying on past a failure would move one
+		// store to the new chain and leave the other behind, so abandon the
+		// reorg rather than record the new chain head below.
+		if failed.Load() {
+			log.Errorf("Abandoning reorg to %v (%d) after a handler failure. No "+
+				"further blocks can be connected; restarting resumes from the "+
+				"last consistent height.", d.NewChainHead, d.NewChainHeight)
+			if notifier.fatal != nil {
+				notifier.fatal()
+			}
 			return
 		}
 	}

@@ -1051,6 +1051,12 @@ func _main(ctx context.Context) error {
 	// The groups are run sequentially, but the handlers within a group are run
 	// concurrently. For example, register(A); register(B, C) will result in A
 	// running alone and completing, then B and C running concurrently.
+	// A handler group that fails leaves the notifier unable to connect any
+	// further blocks, and its heights frozen — which the status monitor reads as
+	// healthy, since node and DB heights simply stop advancing together. Shut
+	// down instead: the batch sync on restart resumes from the last consistent
+	// height, which is the only path back to a moving chain.
+	notifier.SetFatalHandler(requestShutdown)
 	notifier.RegisterBlockHandlerGroup(sdbChainMonitor.ConnectBlock)
 	notifier.RegisterBlockHandlerGroup(bdChainMonitor.ConnectBlock)
 	notifier.RegisterBlockHandlerLiteGroup(app.UpdateNodeHeight, mpm.BlockHandler)
