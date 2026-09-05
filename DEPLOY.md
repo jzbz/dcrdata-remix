@@ -92,6 +92,7 @@ Useful flags:
 | `--dcrdserv/-user/-pass/-cert` | Coordinates of an existing dcrd (with `--skip-dcrd`). |
 | `--go-version <v>` | Go toolchain version (default `1.26.4`). |
 | `--dcrd-version <v>` | dcrd version to `go install` (default `latest`). |
+| `--no-repair` | Don't repair a desynced stake database; only report it (see [Troubleshooting](#troubleshooting)). |
 
 Run `./deploy.sh --help` for the full list. The rest of this document explains
 what the script does, for manual setups or customization.
@@ -486,6 +487,73 @@ the data. A hand-customized `/etc/caddy/Caddyfile` (e.g. the Cloudflare edits in
 | dcrdata exits: can't reach dcrd | Is dcrd synced and its RPC up? `dcrctl --rpcserver=127.0.0.1:9109 --rpccert=/opt/dcrd/.dcrd/rpc.cert --rpcuser=… --rpcpass=… getinfo`. Cert path/permissions correct? |
 | dcrdata exits: dcrd version incompatible | Update dcrd (`go install github.com/decred/dcrd@latest`) — dcrdata checks the RPC API version on startup. |
 | `password authentication failed` (PG) | Peer auth needs the OS user and DB role to match (`dcrdata`). Run dcrdata as the `dcrdata` user and connect via `pghost=/run/postgresql`. |
+| dcrdata crash-loops: `The stake database is corrupted` | The stake database fell behind the PostgreSQL index and dcrdata cannot resync past it. Re-run `deploy.sh`: it detects this and purges the few blocks the panic asks for. See below. |
 | Disk filling up | The mainnet PostgreSQL DB is large and grows. Monitor with `df -h` and `du -sh /var/lib/postgresql`. |
 | TLS certificate not issued | DNS must resolve to this host and ports 80+443 reachable. Behind Cloudflare, see §9 step 2. Watch `journalctl -u caddy -f`. |
 | Wrong client IPs in logs / rate limits | Set `userealip`/`trustproxy` (§6) and, behind Cloudflare, forward `CF-Connecting-IP` (§9 step 4). |
+
+### Stake database desync
+
+dcrdata keeps a stake database alongside the PostgreSQL index — an ffldb stake
+node store (`stakenodes`) plus a badger ticket pool (`ticket_pool.bdgr`) — and
+the sync loop can only connect the block exactly one above it. Two things can
+leave it further behind than that: an unclean stop (the stake node store's
+metadata is cached and flushed lazily, while PostgreSQL has already committed),
+and a stake-database handler error during a new block, which the notifier logs
+as `block handler failed` and then swallows while the PostgreSQL write proceeds
+anyway. Either way dcrdata will not put it back on its own — its rewind only
+fires when the stake database is *ahead*. The result is a panic on the same
+block at every start:
+
+```
+panic: About to connect the wrong block: 1109523, 1109521
+        The stake database is corrupted. Restart with --purge-n-blocks=4 to recover.
+```
+
+Re-running `deploy.sh` fixes it. It looks for that panic in the journal, confirms
+PostgreSQL is still sitting at the height the panic named, then stops the
+service and runs a one-shot purge — which drops PostgreSQL below the stake
+database, so dcrdata rewinds the stake database to match and re-indexes the
+purged blocks. The flag is passed on the command line of that single run only,
+never written to `dcrdata.conf`, so it cannot purge again on a later start.
+
+To do it by hand instead, or with `--no-repair` set:
+
+```bash
+systemctl stop dcrdata
+systemctl reset-failed dcrdata
+cd /opt/dcrdata/app/cmd/dcrdata
+sudo -u dcrdata ./dcrdata --appdata=/opt/dcrdata/appdata --purge-n-blocks=4 --sync-and-quit
+systemctl start dcrdata
+```
+
+`reset-failed` matters if the unit has hit a start limit: `systemctl stop` does
+not clear that state, and `start` is then refused with "Start request repeated
+too quickly." You can interrupt the run with Ctrl-C once the purge has logged
+`Successfully purged data for …` — the rest is an ordinary catch-up sync that the
+service finishes on its own while serving its syncing page.
+
+Use the `N` from the panic message. `Rewinding StakeDatabase from block X to Y.`
+in the output is the line that confirms the repair took. If it recurs
+immediately with a larger `N`, the stake database itself is damaged. Deleting it
+is the last resort, and note what that actually costs: nothing rebuilds the stake
+database against an existing PostgreSQL index. With the stake database at height
+0 and PostgreSQL at the chain tip, the very next start panics again with a gap of
+a million blocks. So the last resort is a **full resync**, both stores together:
+
+```bash
+systemctl stop dcrdata
+rm -rf /opt/dcrdata/appdata/data/mainnet/stakenodes /opt/dcrdata/appdata/data/mainnet/ticket_pool.bdgr
+sudo -u dcrdata psql -d dcrdata -c 'DROP OWNED BY dcrdata;'
+systemctl start dcrdata
+```
+
+That re-indexes from genesis and takes many hours. Exhaust the purge route first.
+
+Pick `N` generously rather than minimally. `PurgeBestBlocks` counts back from the
+`blocks` table tip and then rewinds the stake database to whatever height it
+lands on, returning an error — which aborts startup entirely — if that height is
+still above the stake database. Too small an `N` therefore fails *worse* than the
+crash loop. `deploy.sh` guards against this by raising `N` to the real distance
+between the blocks tip and the stake database when the panic's own number is too
+small; doing it by hand, add a few blocks of margin.

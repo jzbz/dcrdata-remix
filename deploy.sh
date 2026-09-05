@@ -13,6 +13,12 @@
 # against the recorded state aborts with an explanation (delete the state
 # file after wiping the data to start over).
 #
+# A re-run also repairs the one failure dcrdata cannot recover from on its own:
+# if an unclean stop leaves the stake database behind the PostgreSQL index,
+# every start panics on the same block and systemd restarts into it forever.
+# deploy.sh detects exactly that and performs the one-shot purge the panic
+# asks for. Pass --no-repair to leave it alone.
+#
 # Usage (run as root or with sudo):
 #   sudo ./deploy.sh --domain explorer.example.com
 #   sudo ./deploy.sh --domain explorer.example.com --repo https://github.com/me/dcrdata
@@ -34,6 +40,7 @@
 #   --go-version <v>   Go toolchain version        (default: 1.26.4).
 #   --dcrd-version <v> dcrd version to go install  (default: latest).
 #   --listen <addr>    dcrdata internal listen     (default: 127.0.0.1:7777).
+#   --no-repair        Do not repair a stake-database desync; only report it.
 #   -h, --help         Show this help.
 #
 set -euo pipefail
@@ -48,6 +55,7 @@ DOMAIN=""
 HTTP_ONLY=0
 TESTNET=0
 SKIP_DCRD=0
+REPAIR=1
 EXT_DCRDSERV=""; EXT_DCRDUSER=""; EXT_DCRDPASS=""; EXT_DCRDCERT=""
 REPO_SET=0; LISTEN_SET=0; MODE_SET=0
 
@@ -105,6 +113,7 @@ while [[ $# -gt 0 ]]; do
     --repo)         REPO_URL="${2:?--repo needs a value}"; REPO_SET=1; shift 2 ;;
     --testnet)      TESTNET=1; shift ;;
     --skip-dcrd)    SKIP_DCRD=1; shift ;;
+    --no-repair)    REPAIR=0; shift ;;
     --dcrdserv)     EXT_DCRDSERV="${2:?}"; shift 2 ;;
     --dcrduser)     EXT_DCRDUSER="${2:?}"; shift 2 ;;
     --dcrdpass)     EXT_DCRDPASS="${2:?}"; shift 2 ;;
@@ -523,10 +532,177 @@ ReadWritePaths=${DATA_HOME}
 WantedBy=multi-user.target
 EOF
 
+# ---- 8b. Repair a desynced stake database ---------------------------------
+# dcrdata keeps two databases in step: the PostgreSQL index and the stake
+# database. The sync loop can only connect the block exactly one above stakedb,
+# and it starts from the PostgreSQL height plus one — so the two must be level
+# at startup. Two things can leave stakedb further behind than that: an unclean
+# stop, and a stake-database handler error on a new block, which the notifier
+# logs as "block handler failed" and swallows while the PostgreSQL write goes
+# ahead anyway. Nothing in dcrdata puts it back — the rewind only fires when
+# stakedb is *ahead* (cmd/dcrdata/main.go). Every start then re-panics on the
+# same block, "The stake database is corrupted", and systemd loops on it.
+#
+# The panic names its own cure. Purging N blocks from PostgreSQL drops it below
+# stakedb, which makes that rewind fire and pulls stakedb level again; the
+# purged blocks are re-indexed from dcrd. Purging throws away real work, so the
+# trigger is narrow: the panic must be in the journal, and BOTH stores must
+# still be exactly where it left them — stakedb at the height it reported and
+# PostgreSQL one below the block it choked on. A healthy or already-repaired
+# install fails those checks and is left untouched.
+
+PURGE_N=""; PANIC_BLOCK=""; PANIC_STAKEDB=""; PG_HEIGHT=""; BLOCKS_TIP=""
+LAST_STAKEDB=""
+if command -v psql >/dev/null 2>&1; then
+  PANIC_RE='wrong block: ([0-9]+), ([0-9]+)'
+  # Filter inside the pipeline: a busy unit's 30 days of journal is large, and
+  # only these two kinds of line are ever read out of it.
+  DCRDATA_LOG=$(journalctl -u dcrdata --since=-30d --no-pager 2>/dev/null \
+                  | grep -E 'About to connect the wrong block:|Current best block \(stakedb\)' \
+                  || true)
+  PANIC_LINE=$(grep -F 'About to connect the wrong block:' <<<"$DCRDATA_LOG" \
+                 | tail -1 || true)
+
+  if [[ "$PANIC_LINE" =~ $PANIC_RE ]]; then
+    PANIC_BLOCK="${BASH_REMATCH[1]}"      # block dcrdata tried to connect
+    PANIC_STAKEDB="${BASH_REMATCH[2]}"    # where stakedb actually was
+
+    # Derive the count from this panic's own two numbers, which is the formula
+    # sync.go itself uses. Do NOT scrape the suggested "--purge-n-blocks=N" out
+    # of the log: sync.go emits that same phrase from an unrelated unknown-ticket
+    # error with a very different N, and a whole-buffer match could pair the two.
+    PURGE_N=$(( 2 * (PANIC_BLOCK - PANIC_STAKEDB) ))
+
+    # Is that state still live? Check both halves. dcrdata logs the stake
+    # database height on every start, and resumes at meta.best_block_height + 1
+    # — so the panic still applies only while the stake database is where the
+    # panic left it AND PostgreSQL sits one block below the block it choked on.
+    # A hand-repair that resynced but stopped short would otherwise be
+    # indistinguishable on the PostgreSQL side alone.
+    LAST_STAKEDB=$(sed -n 's/.*Current best block (stakedb): *\([0-9]\{1,\}\).*/\1/p' \
+                     <<<"$DCRDATA_LOG" | tail -1 || true)
+    PG_HEIGHT=$(sudo -u "$DATA_USER" psql -d "$DATA_USER" -tAc \
+                  'SELECT best_block_height FROM meta' 2>/dev/null \
+                  | tr -d '[:space:]' || true)
+
+    if [[ "$LAST_STAKEDB" != "$PANIC_STAKEDB" ]]; then
+      log "Ignoring a stake database panic that no longer matches the last start"
+      log "(stakedb last reported ${LAST_STAKEDB:-unknown}, panic was at ${PANIC_STAKEDB})"
+      PURGE_N=""
+    elif [[ ! "$PG_HEIGHT" =~ ^[0-9]+$ ]]; then
+      warn "journal shows a stake database panic, but the PostgreSQL height could"
+      warn "not be read to confirm it is current; not repairing"
+      PURGE_N=""
+    elif (( PG_HEIGHT != PANIC_BLOCK - 1 )); then
+      log "Ignoring a stale stake database panic (PostgreSQL is now at ${PG_HEIGHT})"
+      PURGE_N=""
+    elif (( PURGE_N < 1 || PURGE_N > 1000 )); then
+      warn "stake database panic asks to purge ${PURGE_N} blocks, which is outside"
+      warn "the range this script will do unattended; repair by hand (see DEPLOY.md)"
+      PURGE_N=""
+    fi
+  fi
+
+  # The purge counts back from the *blocks* table tip, not from the meta height
+  # the panic reported, and PurgeBestBlocks then rewinds stakedb to whatever it
+  # lands on — erroring, and aborting startup entirely, if that is still above
+  # stakedb. A torn write (block row committed, meta not yet) leaves the tip
+  # above meta, so floor the count at the real distance rather than trusting the
+  # panic's number. Aborting startup would be worse than the crash loop.
+  if [[ -n "$PURGE_N" ]]; then
+    BLOCKS_TIP=$(sudo -u "$DATA_USER" psql -d "$DATA_USER" -tAc \
+                   'SELECT height FROM blocks WHERE is_mainchain ORDER BY height DESC LIMIT 1' \
+                   2>/dev/null | tr -d '[:space:]' || true)
+    if [[ "$BLOCKS_TIP" =~ ^[0-9]+$ ]] && (( BLOCKS_TIP - PANIC_STAKEDB > PURGE_N )); then
+      if (( BLOCKS_TIP - PANIC_STAKEDB > 1000 )); then
+        warn "blocks table tip (${BLOCKS_TIP}) is far above the stake database"
+        warn "(${PANIC_STAKEDB}); too much to purge unattended, repair by hand"
+        PURGE_N=""
+      else
+        PURGE_N=$(( BLOCKS_TIP - PANIC_STAKEDB ))
+        log "Raising the purge to ${PURGE_N}: the blocks tip is ${BLOCKS_TIP}, above the"
+        log "recorded best block ${PG_HEIGHT}, and a smaller purge would abort startup."
+      fi
+    fi
+  fi
+fi
+
 # Atomically swap in the freshly built binary, then (re)start.
 mv -f "${APP_CMD}/dcrdata.new" "${APP_CMD}/dcrdata"
 systemctl daemon-reload
 systemctl enable dcrdata >/dev/null 2>&1 || true
+# systemctl refuses to start a unit that has hit a start limit, which would abort
+# this script under set -e. Clear it unconditionally.
+systemctl reset-failed dcrdata >/dev/null 2>&1 || true
+
+if [[ -n "$PURGE_N" && $REPAIR -eq 0 ]]; then
+  warn "dcrdata's stake database is desynced (pg ${PG_HEIGHT}, stakedb"
+  warn "${PANIC_STAKEDB}) and it cannot sync past block ${PANIC_BLOCK}. --no-repair"
+  warn "was given, so leaving it alone; see DEPLOY.md to repair it by hand"
+  PURGE_N=""
+fi
+
+if [[ -n "$PURGE_N" ]]; then
+  # A hand-run repair may already be in progress, and the stake node store takes
+  # an exclusive lock, so don't fight it. Exclude the service's own process:
+  # during the crash loop it is running most of the time, and matching it would
+  # skip the repair exactly when it is needed.
+  SERVICE_PID=$(systemctl show -p MainPID --value dcrdata 2>/dev/null || echo 0)
+  OTHER_DCRDATA=$(pgrep -u "$DATA_USER" -x dcrdata 2>/dev/null \
+                    | grep -vx "${SERVICE_PID:-0}" || true)
+  if [[ -n "$OTHER_DCRDATA" ]]; then
+    warn "another dcrdata is running as ${DATA_USER} outside systemd (pid"
+    warn "$(tr '\n' ' ' <<<"$OTHER_DCRDATA")); leaving the repair to it"
+  else
+    log "Stake database is $(( PG_HEIGHT - PANIC_STAKEDB )) block(s) behind PostgreSQL"
+    log "(pg ${PG_HEIGHT}, stakedb ${PANIC_STAKEDB}) — dcrdata cannot sync past this."
+    log "Purging ${PURGE_N} blocks; runs in the foreground, output below."
+    systemctl stop dcrdata
+
+    # The unit is stopped from here until the restart below, so bring it back if
+    # this script exits early. Note the limit: bash defers a trap until the
+    # current foreground command returns, so this covers an error exit under
+    # set -e but NOT a signal arriving mid-repair — a dropped SSH session can
+    # still leave the unit stopped. Re-running deploy.sh recovers that.
+    trap 'systemctl start dcrdata >/dev/null 2>&1 || true' EXIT
+    trap 'exit 130' INT TERM HUP
+
+    # One-shot, on the command line: never written to dcrdata.conf or a drop-in,
+    # so it cannot linger and purge again on a later start. --sync-and-quit skips
+    # the web server, so this does not race the service for the listen address.
+    # dcrdata resolves views_v2/ and public/ from the working directory, hence
+    # the subshell cd; sudo leaves the working directory alone. --foreground
+    # keeps the run attached to this terminal so Ctrl-C reaches it.
+    #
+    # The timeout is deliberately short. The purge and the stake-database rewind
+    # both complete within the first seconds; everything after that is the
+    # ordinary catch-up sync, which the service does perfectly well on its own
+    # while serving its syncing page. Blocking the deploy for hours to finish it
+    # here would only keep the site down longer.
+    REPAIR_LOG=$(mktemp)
+    REPAIR_RC=0
+    ( cd "$APP_CMD" && timeout --foreground 30m sudo -u "$DATA_USER" ./dcrdata \
+        --appdata="$APPDATA" --purge-n-blocks="$PURGE_N" --sync-and-quit ) 2>&1 \
+        | tee "$REPAIR_LOG" || REPAIR_RC=$?
+
+    trap - EXIT INT TERM HUP
+
+    # Judge success by what the run actually did, not by its exit status: the
+    # timeout above is expected to cut the catch-up sync short. dcrdata only
+    # logs this after PurgeBestBlocks returns cleanly, and that call fails if
+    # the stake-database rewind did not reach the purged height — so this one
+    # line is evidence the repair itself landed.
+    if grep -q 'Successfully purged data for' "$REPAIR_LOG"; then
+      ok "purged ${PURGE_N} blocks and rewound the stake database"
+      (( REPAIR_RC == 0 )) || log "catch-up sync unfinished; the service resumes it"
+    else
+      warn "the purge did not complete — starting the service anyway rather than"
+      warn "leaving the site down. Check 'journalctl -u dcrdata' and DEPLOY.md"
+    fi
+    rm -f "$REPAIR_LOG"
+  fi
+fi
+
 systemctl restart dcrdata
 ok "dcrdata service running"
 
